@@ -96,7 +96,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         waitForStart();
         runtime.reset();
 
-
+        //lolol
 
         //variables for controlling
         double verticalControl, horizontalControl, rotateControl, verticalSlowControl, horizontalSlowControl;
