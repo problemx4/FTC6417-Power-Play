@@ -38,13 +38,6 @@ import org.openftc.easyopencv.OpenCvWebcam;
 public class Hardware6417 extends SampleMecanumDrive implements ControlConstants{
 
     //TeleOp variables
-    /* public op mode members */
-    /*
-    public DcMotorEx leftFront  = null;
-    public DcMotorEx rightFront = null;
-    public DcMotorEx leftRear   = null;
-    public DcMotorEx rightRear  = null;
-     */
     public DcMotorEx leftSlider = null;
     public DcMotorEx rightSlider = null;
 
@@ -76,32 +69,13 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     /* Constructor */
     public Hardware6417(HardwareMap ahwMap){
         super(ahwMap);
-        //initIMU(ahwMap);
         initIntake(ahwMap);
-        //initDrive(ahwMap);
 
         // Save reference to Hardware map
         hwMap       = ahwMap;
     }
 
     /* Initialize standard Hardware interfaces */
-    /*
-    public void initIMU(HardwareMap ahwMap){
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-
-        parameters.mode                 = BNO055IMU.SensorMode.IMU;
-        parameters.angleUnit            = BNO055IMU.AngleUnit.RADIANS;
-        parameters.accelUnit            = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled       = false;
-        // Retrieve and initialize the IMU. We expect the IMU to be attached to an I2C port
-        // on a Core Device Interface Module, configured to be a sensor of type "AdaFruit IMU",
-        // and named "imu".
-        imu = ahwMap.get(BNO055IMU.class, "imu");
-
-        imu.initialize(parameters);
-    }
-     */
-
     public void initIntake(HardwareMap ahwMap){
         // Define and initialize motor and servo
         leftSlider  = ahwMap.get(DcMotorEx.class, "LeftSlider");
@@ -131,44 +105,6 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         //reset Arm (Maybe not? dont do this if auto ends outside of proper 0 position or if auto starts outside of proper 0 position)
         resetArm();
     }
-
-    /*
-    public void initDrive(HardwareMap ahwMap){
-        // Define and initialize motor and servo
-        leftFront   = hwMap.get(DcMotorEx.class, "FrontLeft");
-        leftRear    = hwMap.get(DcMotorEx.class, "BackLeft");
-        rightFront  = hwMap.get(DcMotorEx.class, "FrontRight");
-        rightRear   = hwMap.get(DcMotorEx.class, "BackRight");
-
-        // Set motor and servo directions based on orientation of motors on robot
-        leftFront.setDirection(DcMotor.Direction.REVERSE);
-        leftRear.setDirection(DcMotor.Direction.REVERSE);
-        rightFront.setDirection(DcMotor.Direction.FORWARD);
-        rightRear.setDirection(DcMotor.Direction.FORWARD);
-
-        // Set all motors to zero power
-        leftFront.setPower(0);
-        leftRear.setPower(0);
-        rightFront.setPower(0);
-        rightRear.setPower(0);
-
-        rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        rightFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        leftFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightRear.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        leftRear.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        // Set target positions first so that error doesn't occur
-        rightFront.setTargetPosition(0);
-        leftFront.setTargetPosition(0);
-        rightRear.setTargetPosition(0);
-        leftRear.setTargetPosition(0);
-    }
-     */
 
     public void initCamera(HardwareMap ahwMap, Telemetry tele){
         //initialize camera
@@ -249,44 +185,6 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     }
 
 
-    /*
-    public void setDriveSpeeds(double power, double forwardleft, double forwardright, double strafeleft, double straferight) {
-
-
-        double leftFrontSpeed = forwardleft + strafeleft;
-        double rightFrontSpeed = forwardright - straferight;
-        double leftRearSpeed = forwardleft - strafeleft;
-        double rightRearSpeed = forwardright + straferight;
-
-        double largest = 1.0;
-        largest = Math.max(largest, Math.abs(leftFrontSpeed));
-        largest = Math.max(largest, Math.abs(rightFrontSpeed));
-        largest = Math.max(largest, Math.abs(leftRearSpeed));
-        largest = Math.max(largest, Math.abs(rightRearSpeed));
-
-        leftFront.setPower(power * leftFrontSpeed / largest);
-        rightFront.setPower(power * rightFrontSpeed / largest);
-        leftRear.setPower(power * leftRearSpeed / largest);
-        rightRear.setPower(power * rightRearSpeed / largest);
-    }
-
-    public void bcHolonomicDrive(double power, double horizontal, double vertical, double rotation, boolean maintainHeading){
-        double magnitude = Math.sqrt((Math.pow(horizontal,2.0)) + (Math.pow(vertical,2.0)));
-        double inputAngle = Math.atan2(vertical,horizontal);
-
-        double resultAngle = inputAngle;
-
-        if(maintainHeading){
-            double robotAngle = getAngle();
-            resultAngle = inputAngle - robotAngle;
-        }
-
-        double resultVertical = magnitude * Math.sin(resultAngle);
-        double resultHorizontal = magnitude * Math.cos(resultAngle);
-
-        setDriveSpeeds(power, resultVertical + rotation, resultVertical - rotation, resultHorizontal, resultHorizontal);
-    }
-     */
 
     public void rrHolonomicDrive(double power, double horizontal, double vertical, double rotation, boolean maintainHeading){
         Vector2d input = new Vector2d(horizontal, vertical);
