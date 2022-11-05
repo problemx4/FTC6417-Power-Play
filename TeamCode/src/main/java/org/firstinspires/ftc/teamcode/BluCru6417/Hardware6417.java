@@ -252,12 +252,16 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     }
 
     public void autoSlide(int position){
+        leftSlider.setTargetPosition(position);
+        rightSlider.setTargetPosition(position);
+
         if(leftSlider.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
             leftSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             rightSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         }
-        leftSlider.setTargetPosition(position);
-        rightSlider.setTargetPosition(position);
+
+        leftSlider.setPower(autoSlideSpeed);
+        rightSlider.setPower(autoSlideSpeed);
     }
 
     public void resetSliders(){
@@ -284,10 +288,13 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     }
 
     public void autoArm(int position){
+        arm.setTargetPosition(position);
+
         if(arm.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
             arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         }
-        arm.setTargetPosition(position);
+
+        arm.setPower(autoArmSpeed);
     }
 
     public void maintainArm(){

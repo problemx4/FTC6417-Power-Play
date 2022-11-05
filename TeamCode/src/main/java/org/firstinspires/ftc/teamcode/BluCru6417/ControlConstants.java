@@ -23,6 +23,9 @@ public interface ControlConstants {
     double maxSliderPower       = 0.4;
     double maxArmPower          = 0.2;
 
+    double autoSlideSpeed       = 0.5;
+    double autoArmSpeed         = 0.3;
+
     double sens                 = 0.05;
     double triggerSens          = 0.5;
 
