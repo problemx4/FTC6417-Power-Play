@@ -206,30 +206,34 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 switch (armState){
                     case autoArm:
                         //check each button and set target position
+                        //servo arm code
                         if(gamepad2.dpad_down){
-                            robot.autoArm(armDownPos);
+                            robot.autoArm(armServoDownPos);
                         }
                         if(gamepad2.dpad_right){
-                            robot.autoArm(armForwardPos);
+                            robot.autoArm(armServoForwardPos);
                         }
                         if(gamepad2.dpad_left){
-                            robot.autoArm(armBackwardsPos);
+                            robot.autoArm(armServoBackwardsPos);
                         }
                         if(gamepad2.dpad_up){
-                            robot.autoArm(armUsefulPos);
+                            robot.autoArm(armServoUsefulPos);
                         }
+
                         //case to change state
                         if(joyArmActive /* || !robot.arm.isBusy()  // only necessary for maintain arm*/){
                             armState = ARMSTATE.manualArm;
                         }
                         break;
                     case manualArm:
+                        //servo arm code
                         if(joyArmActive){
-                            robot.manualArm(maxArmPower * armControl);
+                            robot.manualArm(manualWristDelta * armControl);
                         }
                         else{
                             //robot.maintainArm(); necessary?
                         }
+
                         //case to change state
                         if(gamepad2.dpad_down || gamepad2.dpad_right || gamepad2.dpad_left || gamepad2.dpad_up){
                             armState = ARMSTATE.autoArm;
@@ -287,10 +291,6 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 //reset slider
                 if(gamepad2.right_bumper){
                     robot.resetSliders();
-                }
-                //reset arm
-                if(gamepad2.left_bumper){
-                    robot.resetArm();
                 }
             }
 
