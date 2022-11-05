@@ -10,6 +10,7 @@ public interface ControlConstants {
     //angle variables
     int armVerticalPosition         = 100; //MEASURE THIS
     double wristVerticalPosition    = .5; //MEASURE THIS
+    double wristHorizontalPosition  = 1.0 //MEASURE THIS
 
     //maintenance variable
     double armMaintenanceCoeff      = .01; //MEASURE THIS

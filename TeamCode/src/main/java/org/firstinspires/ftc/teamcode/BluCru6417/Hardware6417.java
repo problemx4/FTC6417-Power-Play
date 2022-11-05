@@ -422,14 +422,11 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     }
 
     public void autoWrist(){
-        double wristAngle = -getArmAngle();
-
-        wrist.setPosition(wristAngleToPower(wristAngle));
+        wrist.setPosition(wristAngleToPower(-getArmAngle()));
     }
 
     public static double wristAngleToPower(double angle){
-        double ratio = angle / Math.PI;
-        return ratio * armVerticalPosition;
+        return ((angle / (Math.PI / 2.0)) * (wristHorizontalPosition - wristVerticalPosition)) + wristVerticalPosition;
     }
 
 
