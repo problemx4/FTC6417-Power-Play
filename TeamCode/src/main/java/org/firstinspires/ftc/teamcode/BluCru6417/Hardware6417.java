@@ -270,6 +270,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         //set motors to run to zero to avoid problems
         leftSlider.setTargetPosition(0);
         rightSlider.setTargetPosition(0);
+        //lololol
     }
 
 
