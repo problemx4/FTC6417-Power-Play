@@ -41,9 +41,8 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     public DcMotorEx leftSlider = null;
     public DcMotorEx rightSlider = null;
 
-    public DcMotorEx arm        = null;
+    public Servo arm            = null;
     public Servo wrist          = null;
-
     public Servo grabber        = null;
 
     //imu variables
@@ -80,8 +79,8 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         // Define and initialize motor and servo
         leftSlider  = ahwMap.get(DcMotorEx.class, "LeftSlider");
         rightSlider = ahwMap.get(DcMotorEx.class, "RightSlider");
-        arm         = ahwMap.get(DcMotorEx.class, "Arm");
 
+        arm         = ahwMap.get(Servo.class, "Arm");
         grabber     = ahwMap.get(Servo.class, "Grabber");
         wrist       = ahwMap.get(Servo.class, "Wrist");
 
@@ -92,18 +91,13 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         //set all motors to zero power
         leftSlider.setPower(0);
         rightSlider.setPower(0);
-        arm.setPower(0);
 
         //set brake behavior
         leftSlider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightSlider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         //reset sliders
         resetSliders();
-
-        //reset Arm (Maybe not? dont do this if auto ends outside of proper 0 position or if auto starts outside of proper 0 position)
-        resetArm();
     }
 
     public void initCamera(HardwareMap ahwMap, Telemetry tele){
@@ -173,7 +167,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
         tele.addData("left slider Pos", leftSlider.getCurrentPosition());
         tele.addData("right slider pos", rightSlider.getCurrentPosition());
-        tele.addData("arm pos", arm.getCurrentPosition());
+        tele.addData("arm pos", arm.getPosition());
         tele.addData("arm angle", getArmAngle());
 
         tele.addData("Wrist position", wrist.getPosition());
@@ -276,47 +270,23 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         //set motors to run to zero to avoid problems
         leftSlider.setTargetPosition(0);
         rightSlider.setTargetPosition(0);
+        //lololol
     }
 
 
 
-    public void manualArm(double power){
-        if(arm.getMode() != DcMotor.RunMode.RUN_USING_ENCODER){
-            arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        }
-        arm.setPower(power);
+    //arm servo code
+    public void manualArm(double delta){
+        double newPosition = Range.clip(arm.getPosition() + delta,0,1);
+        arm.setPosition(newPosition);
     }
 
-    public void autoArm(int position){
-        arm.setTargetPosition(position);
-
-        if(arm.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
-            arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        }
-
-        arm.setPower(autoArmSpeed);
-    }
-
-    public void maintainArm(){
-        manualArm(Math.sin(getArmAngle()) * armMaintenanceCoeff);
+    public void autoArm(double position){
+        arm.setPosition(position);
     }
 
     public double getArmAngle(){
-        double armPosition = arm.getCurrentPosition();
-
-        double ratio = armPosition / armVerticalPosition;
-        return ratio * (Math.PI / 2.0);
-    }
-
-    public void resetArm(){
-        //reset motor encoders
-        arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        //use motor encoders
-        arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-        //set motors to run to zero to avoid problems
-        arm.setTargetPosition(0);
+        return ((arm.getPosition() - armServoVerticalPosition) / (armServoHorizontalPosition - armServoVerticalPosition)) * (Math.PI / 2.0);
     }
 
 
