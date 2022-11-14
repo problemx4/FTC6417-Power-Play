@@ -13,14 +13,15 @@ import org.firstinspires.ftc.teamcode.BluCru6417.Hardware6417;
             gamepad 1:
             left stick              - holonomic drive
             right stick             - rotate
-            left bumper             - open grabber
-            right bumper            - close grabber
-            left trigger            - manual move wrist back
-            right trigger           - manual move wrist forward
-            a (x)                   - toggle maintain heading
-            b (circle)              - reset cumulative angle
-            x (square)              - turn on autoWrist
-            dpad                    - slower driving
+            left bumper             - slower driving (hold)
+            right bumper            - toggle maintain heading
+            left trigger            - even slower driving (hold)
+            right trigger           - reset cumulative angle
+            a (x)                   - close grabber
+            b (circle)              - open grabber
+            dpad down               - turn on autoWrist
+            dpad left               - manual wrist back
+            dpad                    - manual wrist forward
 
             gamepad 2:
             vertical left stick     - manual move arm
@@ -97,7 +98,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         runtime.reset();
 
         //variables for controlling
-        double verticalControl, horizontalControl, rotateControl, verticalSlowControl, horizontalSlowControl;
+        double verticalControl, horizontalControl, rotateControl, currentDrivePower;
 
         double sliderControl;
 
@@ -106,7 +107,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
 
         boolean maintainHeading = true;
 
-        boolean lastA1 = false;
+        boolean lastRB1 = false;
 
 
         DRIVESTATE driveState = DRIVESTATE.joyDrive;
@@ -125,35 +126,24 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 horizontalControl = clipJoyInput(gamepad1.left_stick_x);
                 rotateControl = clipJoyInput(gamepad1.left_stick_x);
 
-                verticalSlowControl = getGamepad1DpadY();
-                horizontalSlowControl = getGamepad1DpadX();
-
-                switch(driveState){
-                    case joyDrive:
-                        //move wheels
-                        robot.rrHolonomicDrive(maxDrivePower,horizontalControl,verticalControl,rotateControl,maintainHeading);
-
-                        //condition to change state
-                        if((getGamepad1DpadX() != 0)|| (getGamepad1DpadY() != 0)){
-                            driveState = DRIVESTATE.dpadDrive;
-                        }
-                        break;
-                    case dpadDrive:
-                        //move wheels slowly
-                        robot.rrHolonomicDrive(maxSlowerDrivePower,horizontalSlowControl,verticalSlowControl,rotateControl,maintainHeading);
-
-                        //condition to change state
-                        if((Math.abs(verticalControl) >= sens) || (Math.abs(horizontalControl) >= sens)){
-                            driveState = DRIVESTATE.joyDrive;
-                        }
-                        break;
+                if(gamepad1.left_bumper){
+                    currentDrivePower = maxSlowerDrivePower;
                 }
+                else if(gamepad1.left_trigger > triggerSens){
+                    currentDrivePower = 1.0;
+                }
+                else{
+                    currentDrivePower = maxDrivePower;
+                }
+
+                //move wheels
+                robot.rrHolonomicDrive(currentDrivePower,horizontalControl,verticalControl,rotateControl,maintainHeading);
 
                 //toggle maintain heading
-                if(gamepad1.a && !lastA1){
+                if(gamepad1.right_bumper && !lastRB1){
                     maintainHeading = !maintainHeading;
                 }
-                lastA1 = gamepad1.a;
+                lastRB1 = gamepad1.right_bumper;
             }
 
 
@@ -249,19 +239,21 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                     case autoWrist:
                         robot.autoWrist();
                         //case to switch state
-                        if(gamepad1.right_trigger > triggerSens || gamepad1.left_trigger > triggerSens){
+                        if(gamepad1.dpad_right || gamepad1.dpad_left){
                             wristState = WRISTSTATE.manualWrist;
                         }
                         break;
                     case manualWrist:
-                        if(gamepad1.right_trigger > triggerSens){
+                        //move forward
+                        if(gamepad1.dpad_right){
                             robot.manualWrist(-manualWristDelta);
                         }
-                        if(gamepad1.left_trigger > triggerSens){
+                        //move back
+                        if(gamepad1.dpad_left){
                             robot.manualWrist(manualWristDelta);
                         }
                         //case to swtich state
-                        if(gamepad1.x){
+                        if(gamepad1.dpad_down){
                             wristState = WRISTSTATE.autoWrist;
                         }
                         break;
@@ -272,10 +264,10 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
 
             //grabber control
             {
-                if(gamepad1.right_bumper){
+                if(gamepad1.a){
                     robot.closeGrabber();
                 }
-                if(gamepad1.left_bumper){
+                if(gamepad1.b){
                     robot.openGrabber();
                 }
             }
@@ -285,7 +277,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
             //reset stuff
             {
                 //reset cumulative angle
-                if(gamepad1.b){
+                if(gamepad1.right_trigger > triggerSens){
                     robot.resetAngle();
                 }
                 //reset slider
@@ -312,28 +304,5 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         }
 
         return Range.clip(input, -1, 1);
-    }
-
-    //methods to convert dpad from individual buttons into something similar to joystick inputs
-    public double getGamepad1DpadX(){
-        if(gamepad1.dpad_right){
-            return 1.0;
-        }
-        if(gamepad1.dpad_left){
-            return -1.0;
-        }
-
-        return 0.0;
-    }
-
-    public double getGamepad1DpadY(){
-        if(gamepad1.dpad_up){
-            return 1.0;
-        }
-        if(gamepad1.dpad_down){
-            return -1.0;
-        }
-
-        return 0.0;
     }
 }
