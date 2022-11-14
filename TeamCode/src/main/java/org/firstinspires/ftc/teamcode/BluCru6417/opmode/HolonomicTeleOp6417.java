@@ -15,7 +15,7 @@ import org.firstinspires.ftc.teamcode.BluCru6417.Hardware6417;
             right stick             - rotate
             left bumper             - slower driving (hold)
             right bumper            - toggle maintain heading
-            left trigger            - even slower driving (hold)
+            left trigger            - max speed driving (hold)
             right trigger           - reset cumulative angle
             a (x)                   - close grabber
             b (circle)              - open grabber
@@ -39,21 +39,12 @@ import org.firstinspires.ftc.teamcode.BluCru6417.Hardware6417;
             */
 
 
-
 @TeleOp(name = "Holonomic TeleOp", group = "TeleOp")
 public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstants{
 
     ElapsedTime runtime = new ElapsedTime();
 
     //Enums for state machine
-    enum DRIVESTATE{
-        joyDrive,
-        dpadDrive
-    }
-    enum ARMSTATE{
-        autoArm,
-        manualArm
-    }
     enum WRISTSTATE{
         autoWrist,
         manualWrist
@@ -64,13 +55,11 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
     }
 
 
-
     @Override
     public void runOpMode() {
         //initialize robot
         Hardware6417 robot = new Hardware6417(hardwareMap);
         telemetry.addData("Status", "Initialized");
-
 
 
         // make sure the imu gyro is calibrated before continuing.
@@ -87,10 +76,8 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         telemetry.update();
 
 
-
         //setup robot
         robot.start();
-
 
 
         //wait for start and reset timer
@@ -99,22 +86,14 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
 
         //variables for controlling
         double verticalControl, horizontalControl, rotateControl, currentDrivePower;
-
         double sliderControl;
-
         double armControl;
-        boolean joyArmActive;
 
         boolean maintainHeading = true;
-
         boolean lastRB1 = false;
 
-
-        DRIVESTATE driveState = DRIVESTATE.joyDrive;
         SLIDESTATE slideState = SLIDESTATE.autoSlide;
-        ARMSTATE armState = ARMSTATE.autoArm;
         WRISTSTATE wristState = WRISTSTATE.autoWrist;
-
 
 
         //Control loop
@@ -145,7 +124,6 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 }
                 lastRB1 = gamepad1.right_bumper;
             }
-
 
 
             //slider control
@@ -185,52 +163,27 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
             }
 
 
-
             //arm control
             {
                 armControl = -1 * clipJoyInput(gamepad2.left_stick_y);
 
-                //necessary because of maintaining arm
-                joyArmActive = Math.abs(armControl) >= sens;
-
-                switch (armState){
-                    case autoArm:
-                        //check each button and set target position
-                        //servo arm code
-                        if(gamepad2.dpad_down){
-                            robot.autoArm(armServoDownPos);
-                        }
-                        if(gamepad2.dpad_right){
-                            robot.autoArm(armServoForwardPos);
-                        }
-                        if(gamepad2.dpad_left){
-                            robot.autoArm(armServoBackwardsPos);
-                        }
-                        if(gamepad2.dpad_up){
-                            robot.autoArm(armServoUsefulPos);
-                        }
-
-                        //case to change state
-                        if(joyArmActive /* || !robot.arm.isBusy()  // only necessary for maintain arm*/){
-                            armState = ARMSTATE.manualArm;
-                        }
-                        break;
-                    case manualArm:
-                        //servo arm code
-                        if(joyArmActive){
-                            robot.manualArm(manualWristDelta * armControl);
-                        }
-                        else{
-                            //robot.maintainArm(); necessary?
-                        }
-
-                        //case to change state
-                        if(gamepad2.dpad_down || gamepad2.dpad_right || gamepad2.dpad_left || gamepad2.dpad_up){
-                            armState = ARMSTATE.autoArm;
-                        }
+                //check each button and set target position
+                //servo arm code
+                if(gamepad2.dpad_down){
+                    robot.autoArm(armServoDownPos);
                 }
-            }
+                if(gamepad2.dpad_right){
+                    robot.autoArm(armServoForwardPos);
+                }
+                if(gamepad2.dpad_left){
+                    robot.autoArm(armServoBackwardsPos);
+                }
+                if(gamepad2.dpad_up){
+                    robot.autoArm(armServoUsefulPos);
+                }
 
+                robot.manualArm(manualWristDelta * armControl);
+            }
 
 
             //wrist control
@@ -261,7 +214,6 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
             }
 
 
-
             //grabber control
             {
                 if(gamepad1.a){
@@ -271,7 +223,6 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                     robot.openGrabber();
                 }
             }
-
 
 
             //reset stuff
@@ -286,6 +237,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 }
             }
 
+
             //telemetry
             {
                 telemetry.addData("maintain heading", maintainHeading);
@@ -296,6 +248,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         //stop robot after end
         robot.end();
     }
+
 
     //method to make clip joystick input if it is less than sensitivity constant
     public double clipJoyInput(double input){
