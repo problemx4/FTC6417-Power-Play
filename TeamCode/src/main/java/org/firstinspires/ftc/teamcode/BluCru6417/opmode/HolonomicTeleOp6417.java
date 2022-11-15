@@ -28,6 +28,7 @@ import org.firstinspires.ftc.teamcode.BluCru6417.Hardware6417;
             vertical right stick    - manual move slider
             left bumper             - reset arm encoder
             right bumper            - reset slider encoder
+            left trigger            - retract wrist
             a (x)                   - ground slider position
             b (circle)              - low slider position
             x (square)              - medium slider position
@@ -47,7 +48,8 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
     //Enums for state machine
     enum WRISTSTATE{
         autoWrist,
-        manualWrist
+        manualWrist,
+        retractWrist
     }
     enum SLIDESTATE{
         autoSlide,
@@ -91,6 +93,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
 
         boolean maintainHeading = true;
         boolean lastRB1 = false;
+        boolean lastLT2 = false;
 
         SLIDESTATE slideState = SLIDESTATE.autoSlide;
         WRISTSTATE wristState = WRISTSTATE.autoWrist;
@@ -192,7 +195,10 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                     case autoWrist:
                         robot.autoWrist();
                         //case to switch state
-                        if(gamepad1.dpad_right || gamepad1.dpad_left){
+                        if(gamepad2.left_trigger > triggerSens){
+                            wristState = WRISTSTATE.retractWrist;
+                        }
+                        else if(gamepad1.dpad_right || gamepad1.dpad_left){
                             wristState = WRISTSTATE.manualWrist;
                         }
                         break;
@@ -205,12 +211,27 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                         if(gamepad1.dpad_left){
                             robot.manualWrist(manualWristDelta);
                         }
-                        //case to swtich state
+                        //cases to swtich state
+                        if(gamepad2.left_trigger > triggerSens){
+                            wristState = WRISTSTATE.retractWrist;
+                        }
                         if(gamepad1.dpad_down){
                             wristState = WRISTSTATE.autoWrist;
                         }
                         break;
+                    case retractWrist:
+                        //retract wrist (clutch)
+                        if(gamepad2.left_trigger > triggerSens){
+                            robot.retractWrist();
+                        }
+                        //case to switch state
+                        if(gamepad2.left_trigger < triggerSens && !lastLT2){
+                            wristState = WRISTSTATE.autoWrist;
+                        }
+                        break;
                 }
+
+                lastLT2 = gamepad2.left_trigger > triggerSens;
             }
 
 

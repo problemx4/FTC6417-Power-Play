@@ -46,7 +46,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     public Servo grabber        = null;
 
     //imu variables
-    public BNO055IMU imu;
+    //public BNO055IMU imu;
 
     double lastAngle;
     double globalAngle;
@@ -63,7 +63,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     public SignalDetectorPipeline pipeline;
 
     //hardwareMap
-    HardwareMap hwMap = null;
+    HardwareMap hwMap;
 
     /* Constructor */
     public Hardware6417(HardwareMap ahwMap){
@@ -298,6 +298,10 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
     public void autoWrist(){
         wrist.setPosition(wristAngleToPower(-getArmAngle()));
+    }
+
+    public void retractWrist(){
+        wrist.setPosition(wristHorizontalPosition); //maybe make this negative
     }
 
     public static double wristAngleToPower(double angle){
