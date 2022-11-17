@@ -282,12 +282,19 @@ public class SampleMecanumDrive extends MecanumDrive {
     }
 
     //my own method
-    public List<Integer> getWheelTicks(){
-        List<Integer> wheelTicks = new ArrayList<>();
-        for (DcMotorEx motor : motors) {
-            wheelTicks.add(motor.getCurrentPosition());
+    public Integer getWheelTicks(int wheel){
+        switch(wheel){
+            case 0:
+                return leftFront.getCurrentPosition();
+            case 1:
+                return leftRear.getCurrentPosition();
+            case 2:
+                return rightRear.getCurrentPosition();
+            case 3:
+                return rightFront.getCurrentPosition();
+            default:
+                return -666;
         }
-        return wheelTicks;
     }
 
     @Override
