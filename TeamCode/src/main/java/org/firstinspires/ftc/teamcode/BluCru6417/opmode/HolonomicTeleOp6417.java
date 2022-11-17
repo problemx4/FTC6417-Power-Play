@@ -40,7 +40,7 @@ import org.firstinspires.ftc.teamcode.BluCru6417.Hardware6417;
             */
 
 
-@TeleOp(name = "Holonomic TeleOp", group = "TeleOp")
+@TeleOp(name = "Main TeleOp", group = "TeleOp")
 public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstants{
 
     ElapsedTime runtime = new ElapsedTime();
@@ -79,7 +79,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
 
 
         //setup robot
-        robot.start();
+        //robot.start();
 
 
         //wait for start and reset timer
@@ -96,7 +96,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         boolean lastLT2 = false;
 
         SLIDESTATE slideState = SLIDESTATE.autoSlide;
-        WRISTSTATE wristState = WRISTSTATE.autoWrist;
+        WRISTSTATE wristState = WRISTSTATE.manualWrist;
 
 
         //Control loop
@@ -106,7 +106,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 //get gamepad joystick and dpad variables for control
                 verticalControl = -1 * clipJoyInput(gamepad1.left_stick_y);
                 horizontalControl = clipJoyInput(gamepad1.left_stick_x);
-                rotateControl = clipJoyInput(gamepad1.left_stick_x);
+                rotateControl = clipJoyInput(gamepad1.right_stick_x);
 
                 if(gamepad1.left_bumper){
                     currentDrivePower = maxSlowerDrivePower;

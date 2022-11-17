@@ -22,7 +22,7 @@ public interface ControlConstants {
 
     /* control variables */
     //power variables
-    double maxDrivePower            = 1.0;
+    double maxDrivePower            = 0.6;
     double maxSlowerDrivePower      = 0.3;
     double maxSliderPower           = 0.4;
     double maxArmPower              = 0.2;

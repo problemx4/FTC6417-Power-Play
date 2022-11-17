@@ -30,7 +30,7 @@ import org.openftc.easyopencv.OpenCvWebcam;
  * Motor channel:   rightRear drive motor:          "RearRight"
  * Motor channel:   left slider motor:              "LeftSlider" *
  * Motor channel:   right slider motor:             "RightSlider" *
- * Motor channel:   arm motor:                      "Arm" *
+ * Servo channel:   arm servo:                      "Arm" *
  * Servo channel:   wrist servo:                    "Wrist" *
  * Servo channel:   grabber Servo:                  "Grabber"
  */
@@ -160,10 +160,10 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     }
 
     public void telemetry(Telemetry tele){
-        tele.addData("left front Pos", getWheelTicks().get(0));
-        tele.addData("left rear Pos", getWheelTicks().get(1));
-        tele.addData("right rear Pos", getWheelTicks().get(2));
-        tele.addData("right front Pos", getWheelTicks().get(3));
+        tele.addData("left front Pos", getWheelTicks(0));
+        tele.addData("left rear Pos", getWheelTicks(1));
+        tele.addData("right rear Pos", getWheelTicks(2));
+        tele.addData("right front Pos", getWheelTicks(3));
 
         tele.addData("left slider Pos", leftSlider.getCurrentPosition());
         tele.addData("right slider pos", rightSlider.getCurrentPosition());
