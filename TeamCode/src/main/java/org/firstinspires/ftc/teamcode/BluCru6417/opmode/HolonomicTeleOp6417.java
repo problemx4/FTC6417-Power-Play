@@ -29,6 +29,7 @@ import org.firstinspires.ftc.teamcode.BluCru6417.Hardware6417;
             left bumper             - reset arm encoder
             right bumper            - reset slider encoder
             left trigger            - retract wrist
+            right trigger           - bring slider down, no limiter
             a (x)                   - ground slider position
             b (circle)              - low slider position
             x (square)              - medium slider position
@@ -53,7 +54,8 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
     }
     enum SLIDESTATE{
         autoSlide,
-        manualSlide
+        manualSlide,
+        returnSlide
     }
 
 
@@ -149,17 +151,35 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                             robot.autoSlide(sliderHighPos);
                         }
                         //case to change state
+                        if(gamepad2.right_trigger > triggerSens){
+                            slideState = SLIDESTATE.returnSlide;
+                        }
                         if(Math.abs(sliderControl) >= sens){
                             slideState = SLIDESTATE.manualSlide;
                         }
                         break;
                     case manualSlide:
                         //control slider manually
-                        robot.manualSlide(maxSliderPower * sliderControl);
+                        robot.manualSlide(maxSliderPower * sliderControl, true);
 
                         //case to change state (any button are pressed)
+                        if(gamepad2.right_trigger > triggerSens){
+                            slideState = SLIDESTATE.returnSlide;
+                        }
                         if(gamepad2.a || gamepad2.b || gamepad2.x || gamepad2.y){
                             slideState = SLIDESTATE.autoSlide;
+                        }
+                        break;
+                    case returnSlide:
+                        //move slider down slowly to reset encoder
+                        robot.manualSlide(-returnSliderPower, false);
+
+                        //case to change state
+                        if(gamepad2.a || gamepad2.b || gamepad2.x || gamepad2.y){
+                            slideState = SLIDESTATE.autoSlide;
+                        }
+                        if(Math.abs(sliderControl) >= sens){
+                            slideState = SLIDESTATE.manualSlide;
                         }
                         break;
                 }
