@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.BluCru6417;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
-import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -85,7 +84,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         wrist       = ahwMap.get(Servo.class, "Wrist");
 
         //set direction of motors accordingly
-        leftSlider.setDirection(DcMotorSimple.Direction.FORWARD);
+        leftSlider.setDirection(DcMotorSimple.Direction.REVERSE);
         rightSlider.setDirection(DcMotorSimple.Direction.FORWARD);
 
         //set all motors to zero power
@@ -223,22 +222,24 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
 
 
-    public void manualSlide(double power){
+    public void manualSlide(double power, boolean limiter){
         if(leftSlider.getMode() != DcMotor.RunMode.RUN_USING_ENCODER){
             leftSlider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             rightSlider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
 
         //check if slider is going beyond limits
-        if((leftSlider.getCurrentPosition() > sliderMaxPos || rightSlider.getCurrentPosition() > sliderMaxPos ) && power > 0){
-            leftSlider.setPower(0);
-            rightSlider.setPower(0);
-            return;
-        }
-        if((leftSlider.getCurrentPosition() < 0 || rightSlider.getCurrentPosition() < 0 ) && power < 0){
-            leftSlider.setPower(0);
-            rightSlider.setPower(0);
-            return;
+        if(limiter){
+            if((leftSlider.getCurrentPosition() > sliderMaxPos || rightSlider.getCurrentPosition() > sliderMaxPos ) && power > 0){
+                leftSlider.setPower(0);
+                rightSlider.setPower(0);
+                return;
+            }
+            if((leftSlider.getCurrentPosition() < 0 || rightSlider.getCurrentPosition() < 0 ) && power < 0){
+                leftSlider.setPower(0);
+                rightSlider.setPower(0);
+                return;
+            }
         }
 
         leftSlider.setPower(power);
@@ -254,8 +255,8 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
             rightSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         }
 
-        leftSlider.setPower(autoSlideSpeed);
-        rightSlider.setPower(autoSlideSpeed);
+        leftSlider.setPower(autoSlidePower);
+        rightSlider.setPower(autoSlidePower);
     }
 
     public void resetSliders(){
@@ -330,7 +331,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
     public void end(){
         stop();
-        manualSlide(0);
+        manualSlide(0,true);
         manualArm(0);
     }
 }
