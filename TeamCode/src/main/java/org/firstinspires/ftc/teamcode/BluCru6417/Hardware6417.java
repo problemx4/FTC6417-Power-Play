@@ -51,7 +51,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     double globalAngle;
 
     //camera variables
-    double[] subMatCenter = {0.45,0.6}; //NOT coordinates, these values are the % across the screen,.5 being the exact center
+    double[] subMatCenter = {0.8,0.6}; //NOT coordinates, these values are the % across the screen,.5 being the exact center, x,y from top left
     int subMatWidth = 80;
     int subMatHeight = 100;
 
@@ -155,7 +155,9 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
     public void start(){
         stop();
+        manualSlide(0,true);
         grabber.setPosition(grabberClosePos);
+        arm.setPosition(armStartPos);
     }
 
     public void telemetry(Telemetry tele){
@@ -247,6 +249,23 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     }
 
     public void autoSlide(int position){
+        if(leftSlider.getTargetPosition() != position || rightSlider.getTargetPosition() != position){
+            leftSlider.setTargetPosition(position);
+            rightSlider.setTargetPosition(position);
+
+            if(leftSlider.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
+                leftSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                rightSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            }
+
+            leftSlider.setPower(autoSlidePower);
+            rightSlider.setPower(autoSlidePower);
+        }
+    }
+
+    public void clearSliders(int clearDelta){
+        int position = ((leftSlider.getCurrentPosition() + rightSlider.getCurrentPosition()) / 2) + clearDelta;
+
         leftSlider.setTargetPosition(position);
         rightSlider.setTargetPosition(position);
 
@@ -255,8 +274,8 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
             rightSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         }
 
-        leftSlider.setPower(autoSlidePower);
-        rightSlider.setPower(autoSlidePower);
+        leftSlider.setPower(clearSlidePower);
+        rightSlider.setPower(clearSlidePower);
     }
 
     public void resetSliders(){
@@ -298,7 +317,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     }
 
     public void autoWrist(){
-        wrist.setPosition(wristAngleToPower(-getArmAngle()));
+        wrist.setPosition(wristAngleToPower(getArmAngle()));
     }
 
     public void retractWrist(){
@@ -332,6 +351,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     public void end(){
         stop();
         manualSlide(0,true);
-        manualArm(0);
+        grabber.setPosition(grabberClosePos);
+        arm.setPosition(armStartPos);
     }
 }
