@@ -194,11 +194,13 @@ public class Trajectories6417 implements ControlConstants{
 
     public static TrajectorySequence firstParkPositionBuilder (Hardware6417 robot, boolean right){
         int multiplier = -1;
+        Pose2d[] poses = leftPositions;
         if(right){
             multiplier = 1;
+            poses = rightPositions;
         }
 
-        return robot.trajectorySequenceBuilder(rightPositions[1])
+        return robot.trajectorySequenceBuilder(poses[1])
                 .turn(Math.toRadians(45 * multiplier))
                 .strafeLeft(24)
                 .build();
@@ -206,22 +208,26 @@ public class Trajectories6417 implements ControlConstants{
 
     public static TrajectorySequence secondParkPositionBuilder (Hardware6417 robot, boolean right){
         int multiplier = -1;
+        Pose2d[] poses = leftPositions;
         if(right){
             multiplier = 1;
+            poses = rightPositions;
         }
 
-        return robot.trajectorySequenceBuilder(rightPositions[1])
+        return robot.trajectorySequenceBuilder(poses[1])
                 .turn(Math.toRadians(45 * multiplier))
                 .build();
     }
 
     public static TrajectorySequence thirdParkPositionBuilder (Hardware6417 robot, boolean right){
         int multiplier = -1;
+        Pose2d[] poses = leftPositions;
         if(right){
             multiplier = 1;
+            poses = rightPositions;
         }
 
-        return robot.trajectorySequenceBuilder(rightPositions[1])
+        return robot.trajectorySequenceBuilder(poses[1])
                 .turn(Math.toRadians(45 * multiplier))
                 .strafeRight(24)
                 .build();
