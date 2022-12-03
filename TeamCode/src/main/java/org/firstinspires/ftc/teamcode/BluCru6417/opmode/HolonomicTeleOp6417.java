@@ -97,6 +97,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         double verticalControl, horizontalControl, rotateControl, currentDrivePower;
         double sliderControl;
         double armControl;
+        double currentSlideFinishDelay = sliderHighFinishDelay;
 
         boolean maintainHeading = true;
         boolean lastRB1 = false;
@@ -158,12 +159,15 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                     }
                     if(gamepad2.b){
                         slideState = SLIDESTATE.targetLow;
+                        currentSlideFinishDelay = sliderLowFinishDelay;
                     }
                     if(gamepad2.x){
                         slideState = SLIDESTATE.targetMed;
+                        currentSlideFinishDelay = sliderMedFinishDelay;
                     }
                     if(gamepad2.y){
                         slideState = SLIDESTATE.targetHigh;
+                        currentSlideFinishDelay = sliderHighFinishDelay;
                     }
                     if(Math.abs(sliderControl) >= sens){
                         slideState = SLIDESTATE.manualSlide;
@@ -286,7 +290,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
 
             //grabber control
             {
-                if(armTimer.seconds() > armFinishDelay && slideTimer.seconds() > sliderFinishDelay && ((!robot.leftSlider.isBusy() || !robot.rightSlider.isBusy()) || slideState == SLIDESTATE.manualSlide)){
+                if(armTimer.seconds() > armFinishDelay && slideTimer.seconds() > currentSlideFinishDelay && ((!robot.leftSlider.isBusy() || !robot.rightSlider.isBusy()) || slideState == SLIDESTATE.manualSlide)){
                     if(gamepad1.a){
                         grabbing = true;
                     }

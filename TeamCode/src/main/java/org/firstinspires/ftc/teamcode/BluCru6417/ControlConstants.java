@@ -49,5 +49,7 @@ public interface ControlConstants {
     double armFinishDelay           = armDelay + 0.3;
     double sliderDelay              = armFinishDelay;
     double sliderRetractDelay       = sliderDelay + 0.1;
-    double sliderFinishDelay        = sliderDelay + 2.0;
+    double sliderHighFinishDelay    = sliderDelay + 2.0;
+    double sliderMedFinishDelay    = sliderDelay + 1.5;
+    double sliderLowFinishDelay    = sliderDelay + 1.0;
 }
