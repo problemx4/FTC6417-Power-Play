@@ -17,6 +17,8 @@ public class Trajectories6417 implements ControlConstants{
             new Pose2d(54, -12, Math.toRadians(0)),  //ready to grab cone position
             new Pose2d(36, 0, Math.toRadians(90)),  //push cone beyond
             new Pose2d(36, -12, Math.toRadians(0)), //after dropping cone
+            new Pose2d(36, -24, Math.toRadians(90)), //push cone beyond if only parking
+            new Pose2d(36, -36, Math.toRadians(45)), //parking only position
     };
 
     public static Pose2d[] leftPositions = {
@@ -25,6 +27,8 @@ public class Trajectories6417 implements ControlConstants{
             new Pose2d(-54, -12, Math.toRadians(180)),  //ready to grab cone position
             new Pose2d(-36, 0, Math.toRadians(90)),  //push cone beyond
             new Pose2d(-36, -12, Math.toRadians(180)), //after dropping cone
+            new Pose2d(-36, -24, Math.toRadians(90)), //push cone beyond if only parking
+            new Pose2d(-36, -36, Math.toRadians(135)), //parking only position
     };
 
     public static TrajectorySequence rightStartAuto(Hardware6417 robot){
@@ -191,6 +195,21 @@ public class Trajectories6417 implements ControlConstants{
                 .build();
     }
 
+
+    public static TrajectorySequence startPark(Hardware6417 robot, boolean right){
+        Pose2d[] poses = leftPositions;
+        if(right){
+            poses = rightPositions;
+        }
+
+        return robot.trajectorySequenceBuilder(poses[0])
+                .setVelConstraint(normalVelocity)
+                .setTangent(90)
+                .splineToSplineHeading(poses[5], Math.toRadians(90))
+                .setTangent(-90)
+                .splineToSplineHeading(poses[6], Math.toRadians(-90))
+                .build();
+    }
 
     public static TrajectorySequence firstParkPositionBuilder (Hardware6417 robot, boolean right){
         int multiplier = -1;
