@@ -10,25 +10,25 @@ public class Trajectories6417 implements ControlConstants{
     static TrajectoryVelocityConstraint normalVelocity = SampleMecanumDrive.getVelocityConstraint(40, Math.toRadians(180), 12.3);
     static TrajectoryVelocityConstraint slowVelocity = SampleMecanumDrive.getVelocityConstraint(10, Math.toRadians(90), 12.3);
 
+    static double correction = 1;
+
     //2d array of robot positions, each row structured as follows: [x pos, y pos, robot angle]
     public static Pose2d[] rightPositions = {
-            new Pose2d(36, -64, Math.toRadians(90)), //starting position
+            new Pose2d(36, -63.5, Math.toRadians(90)), //starting position
             new Pose2d(36, -12, Math.toRadians(45)), //central position
             new Pose2d(54, -12, Math.toRadians(0)),  //ready to grab cone position
-            new Pose2d(36, 0, Math.toRadians(90)),  //push cone beyond
+            new Pose2d(36, -2.5, Math.toRadians(90)),  //push cone beyond
             new Pose2d(36, -12, Math.toRadians(0)), //after dropping cone
-            new Pose2d(36, -24, Math.toRadians(90)), //push cone beyond if only parking
-            new Pose2d(36, -36, Math.toRadians(45)), //parking only position
+            new Pose2d(36, -7, Math.toRadians(90)), //push cone beyond if only parking
     };
 
     public static Pose2d[] leftPositions = {
-            new Pose2d(-36, -64, Math.toRadians(90)), //starting position
+            new Pose2d(-36, -63.5, Math.toRadians(90)), //starting position
             new Pose2d(-36, -12, Math.toRadians(135)), //central position
             new Pose2d(-54, -12, Math.toRadians(180)),  //ready to grab cone position
-            new Pose2d(-36, 0, Math.toRadians(90)),  //push cone beyond
+            new Pose2d(-36, -2.5, Math.toRadians(90)),  //push cone beyond
             new Pose2d(-36, -12, Math.toRadians(180)), //after dropping cone
-            new Pose2d(-36, -24, Math.toRadians(90)), //push cone beyond if only parking
-            new Pose2d(-36, -36, Math.toRadians(135)), //parking only position
+            new Pose2d(-36, -7, Math.toRadians(90)), //push cone beyond if only parking
     };
 
     public static TrajectorySequence rightStartAuto(Hardware6417 robot){
@@ -70,7 +70,7 @@ public class Trajectories6417 implements ControlConstants{
                     robot.autoWrist();
                 })
                 .waitSeconds(1)
-                .back(10)
+                .back(11 + correction)
                 .UNSTABLE_addTemporalMarkerOffset(0, () -> {
                     //drop cone
                     robot.openGrabber();
@@ -108,7 +108,7 @@ public class Trajectories6417 implements ControlConstants{
                     robot.autoWrist();
                 })
                 .waitSeconds(1)
-                .back(10)
+                .back(11 + correction)
                 .UNSTABLE_addTemporalMarkerOffset(0, () -> {
                     //drop cone
                     robot.openGrabber();
@@ -144,7 +144,7 @@ public class Trajectories6417 implements ControlConstants{
                     //grab cone
                     robot.openGrabber();
                 })
-                .forward(10)
+                .forward(8)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //grab cone
                     robot.closeGrabber();
@@ -153,7 +153,7 @@ public class Trajectories6417 implements ControlConstants{
                     // raise slider off stack
                     robot.clearSliders(coneClearDelta);
                 })
-                .waitSeconds(0.2)
+                .waitSeconds(0.3)
                 .setVelConstraint(normalVelocity)
                 .setTangent(Math.toRadians(180))
                 .UNSTABLE_addTemporalMarkerOffset(1,() -> {
@@ -175,7 +175,7 @@ public class Trajectories6417 implements ControlConstants{
                     //grab cone
                     robot.openGrabber();
                 })
-                .forward(10)
+                .forward(8)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //grab cone
                     robot.closeGrabber();
@@ -184,7 +184,7 @@ public class Trajectories6417 implements ControlConstants{
                     // raise slider off stack
                     robot.clearSliders(coneClearDelta);
                 })
-                .waitSeconds(0.2)
+                .waitSeconds(0.3)
                 .setVelConstraint(normalVelocity)
                 .setTangent(Math.toRadians(0))
                 .UNSTABLE_addTemporalMarkerOffset(1,() -> {
@@ -192,22 +192,6 @@ public class Trajectories6417 implements ControlConstants{
                     robot.retractWrist();
                 })
                 .splineToSplineHeading(leftPositions[1], Math.toRadians(0))
-                .build();
-    }
-
-
-    public static TrajectorySequence startPark(Hardware6417 robot, boolean right){
-        Pose2d[] poses = leftPositions;
-        if(right){
-            poses = rightPositions;
-        }
-
-        return robot.trajectorySequenceBuilder(poses[0])
-                .setVelConstraint(normalVelocity)
-                .setTangent(90)
-                .splineToSplineHeading(poses[5], Math.toRadians(90))
-                .setTangent(-90)
-                .splineToSplineHeading(poses[6], Math.toRadians(-90))
                 .build();
     }
 

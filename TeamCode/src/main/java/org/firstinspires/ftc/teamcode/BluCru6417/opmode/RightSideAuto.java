@@ -43,7 +43,6 @@ public class RightSideAuto extends LinearOpMode{
         TrajectorySequence startTrajectory = Trajectories6417.rightStartAuto(robot);
         TrajectorySequence dropTrajectory = Trajectories6417.rightDropCone(robot);
         TrajectorySequence grabTrajectory = Trajectories6417.rightGrabCone(robot);
-        TrajectorySequence startParkTrajectory = Trajectories6417.startPark(robot, true);
         TrajectorySequence firstParkPosition = Trajectories6417.firstParkPositionBuilder(robot, true);
         TrajectorySequence secondParkPosition = Trajectories6417.secondParkPositionBuilder(robot, true);
         TrajectorySequence thirdParkPosition = Trajectories6417.thirdParkPositionBuilder(robot, true);
@@ -111,12 +110,7 @@ public class RightSideAuto extends LinearOpMode{
         //start off robot path
         runtime.reset();
         currentState = STATE.START;
-        if(autoPath == AUTOPATH.PARK){
-            robot.followTrajectorySequenceAsync(startParkTrajectory);
-        }
-        else{
-            robot.followTrajectorySequenceAsync(startTrajectory);
-        }
+        robot.followTrajectorySequenceAsync(startTrajectory);
 
         while(!isStopRequested() && opModeIsActive()){
             switch(currentState){
