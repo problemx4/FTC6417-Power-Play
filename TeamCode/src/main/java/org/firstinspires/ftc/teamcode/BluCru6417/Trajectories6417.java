@@ -11,7 +11,7 @@ public class Trajectories6417 implements ControlConstants{
     static TrajectoryVelocityConstraint slowVelocity = SampleMecanumDrive.getVelocityConstraint(10, Math.toRadians(90), 12.3);
 
     //2d array of robot positions, each row structured as follows: [x pos, y pos, robot angle]
-    public static Pose2d[] positions = {
+    public static Pose2d[] rightPositions = {
             new Pose2d(36, -64, Math.toRadians(90)), //starting position
             new Pose2d(36, -12, Math.toRadians(45)), //central position
             new Pose2d(54, -12, Math.toRadians(0)),  //ready to grab cone position
@@ -19,21 +19,42 @@ public class Trajectories6417 implements ControlConstants{
             new Pose2d(36, -12, Math.toRadians(0)), //after dropping cone
     };
 
-    public static TrajectorySequence startAuto(Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[0])
+    public static Pose2d[] leftPositions = {
+            new Pose2d(-36, -64, Math.toRadians(90)), //starting position
+            new Pose2d(-36, -12, Math.toRadians(135)), //central position
+            new Pose2d(-54, -12, Math.toRadians(180)),  //ready to grab cone position
+            new Pose2d(-36, 0, Math.toRadians(90)),  //push cone beyond
+            new Pose2d(-36, -12, Math.toRadians(180)), //after dropping cone
+    };
+
+    public static TrajectorySequence rightStartAuto(Hardware6417 robot){
+        return robot.trajectorySequenceBuilder(rightPositions[0])
                 .setVelConstraint(normalVelocity)
                 .setTangent(Math.toRadians(90))
-                .splineToSplineHeading(positions[3], Math.toRadians(90))
+                .splineToSplineHeading(rightPositions[3], Math.toRadians(90))
                 .setTangent(Math.toRadians(-90))
-                .splineToSplineHeading(positions[1], Math.toRadians(-90))
+                .splineToSplineHeading(rightPositions[1], Math.toRadians(-90))
                 .UNSTABLE_addTemporalMarkerOffset(0, () -> {
                     robot.retractWrist();
                 })
                 .build();
     }
 
-    public static TrajectorySequence dropCone (Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[1])
+    public static TrajectorySequence leftStartAuto(Hardware6417 robot){
+        return robot.trajectorySequenceBuilder(leftPositions[0])
+                .setVelConstraint(normalVelocity)
+                .setTangent(Math.toRadians(90))
+                .splineToSplineHeading(leftPositions[3], Math.toRadians(90))
+                .setTangent(Math.toRadians(-90))
+                .splineToSplineHeading(leftPositions[1], Math.toRadians(-90))
+                .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                    robot.retractWrist();
+                })
+                .build();
+    }
+
+    public static TrajectorySequence rightDropCone(Hardware6417 robot){
+        return robot.trajectorySequenceBuilder(rightPositions[1])
                 .setVelConstraint(slowVelocity)
                 .UNSTABLE_addTemporalMarkerOffset(0, () -> {
                     //raise slider and prepare it to place
@@ -66,16 +87,54 @@ public class Trajectories6417 implements ControlConstants{
                     robot.autoSlide(sliderBasePos);
                     robot.retractWrist();
                 })
-                .splineToSplineHeading(positions[4], Math.toRadians(45))
+                .splineToSplineHeading(rightPositions[4], Math.toRadians(45))
                 .build();
     }
 
-    public static TrajectorySequence grabCone(Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[4])
+    public static TrajectorySequence leftDropCone(Hardware6417 robot){
+        return robot.trajectorySequenceBuilder(leftPositions[1])
+                .setVelConstraint(slowVelocity)
+                .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                    //raise slider and prepare it to place
+                    robot.autoSlide(sliderMedPos);
+                })
+                .UNSTABLE_addTemporalMarkerOffset(0.3, () -> {
+                    //move arm
+                    robot.autoArm(armServoBackwardsPos);
+                    robot.autoWrist();
+                })
+                .waitSeconds(1)
+                .back(10)
+                .UNSTABLE_addTemporalMarkerOffset(0, () -> {
+                    //drop cone
+                    robot.openGrabber();
+                })
+                .UNSTABLE_addTemporalMarkerOffset(.2, () -> {
+                    //drop cone
+                    robot.closeGrabber();
+                })
+                .setVelConstraint(normalVelocity)
+                .setTangent(Math.toRadians(135))
+                .UNSTABLE_addTemporalMarkerOffset(.2,() -> {
+                    //drop slider
+                    robot.autoArm(armServoDownPos);
+                    robot.clearSliders(armClearDelta);
+                })
+                .UNSTABLE_addTemporalMarkerOffset(.5,() -> {
+                    //drop slider
+                    robot.autoSlide(sliderBasePos);
+                    robot.retractWrist();
+                })
+                .splineToSplineHeading(leftPositions[4], Math.toRadians(135))
+                .build();
+    }
+
+    public static TrajectorySequence rightGrabCone(Hardware6417 robot){
+        return robot.trajectorySequenceBuilder(rightPositions[4])
                 //grabbing cone segment, raise slider to grab cone in autonomous
                 .setVelConstraint(normalVelocity)
                 .setTangent(Math.toRadians(0))
-                .splineToSplineHeading(positions[2],Math.toRadians(0))
+                .splineToSplineHeading(rightPositions[2],Math.toRadians(0))
                 .setVelConstraint(slowVelocity)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //grab cone
@@ -97,27 +156,73 @@ public class Trajectories6417 implements ControlConstants{
                     robot.autoSlide(sliderBasePos);
                     robot.retractWrist();
                 })
-                .splineToSplineHeading(positions[1], Math.toRadians(180))
+                .splineToSplineHeading(rightPositions[1], Math.toRadians(180))
+                .build();
+    }
+
+    public static TrajectorySequence leftGrabCone(Hardware6417 robot){
+        return robot.trajectorySequenceBuilder(leftPositions[4])
+                //grabbing cone segment, raise slider to grab cone in autonomous
+                .setVelConstraint(normalVelocity)
+                .setTangent(Math.toRadians(180))
+                .splineToSplineHeading(leftPositions[2],Math.toRadians(180))
+                .setVelConstraint(slowVelocity)
+                .UNSTABLE_addTemporalMarkerOffset(0,() -> {
+                    //grab cone
+                    robot.openGrabber();
+                })
+                .forward(10)
+                .UNSTABLE_addTemporalMarkerOffset(0,() -> {
+                    //grab cone
+                    robot.closeGrabber();
+                })
+                .UNSTABLE_addTemporalMarkerOffset(.2,() -> {
+                    // raise slider off stack
+                    robot.clearSliders(coneClearDelta);
+                })
+                .waitSeconds(0.2)
+                .setVelConstraint(normalVelocity)
+                .setTangent(Math.toRadians(0))
+                .UNSTABLE_addTemporalMarkerOffset(1,() -> {
+                    robot.autoSlide(sliderBasePos);
+                    robot.retractWrist();
+                })
+                .splineToSplineHeading(leftPositions[1], Math.toRadians(0))
                 .build();
     }
 
 
-    public static TrajectorySequence firstParkPositionBuilder (Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[1])
-                .turn(Math.toRadians(45))
+    public static TrajectorySequence firstParkPositionBuilder (Hardware6417 robot, boolean right){
+        int multiplier = -1;
+        if(right){
+            multiplier = 1;
+        }
+
+        return robot.trajectorySequenceBuilder(rightPositions[1])
+                .turn(Math.toRadians(45 * multiplier))
                 .strafeLeft(24)
                 .build();
     }
 
-    public static TrajectorySequence secondParkPositionBuilder (Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[1])
-                .turn(Math.toRadians(45))
+    public static TrajectorySequence secondParkPositionBuilder (Hardware6417 robot, boolean right){
+        int multiplier = -1;
+        if(right){
+            multiplier = 1;
+        }
+
+        return robot.trajectorySequenceBuilder(rightPositions[1])
+                .turn(Math.toRadians(45 * multiplier))
                 .build();
     }
 
-    public static TrajectorySequence thirdParkPositionBuilder (Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[1])
-                .turn(Math.toRadians(45))
+    public static TrajectorySequence thirdParkPositionBuilder (Hardware6417 robot, boolean right){
+        int multiplier = -1;
+        if(right){
+            multiplier = 1;
+        }
+
+        return robot.trajectorySequenceBuilder(rightPositions[1])
+                .turn(Math.toRadians(45 * multiplier))
                 .strafeRight(24)
                 .build();
     }

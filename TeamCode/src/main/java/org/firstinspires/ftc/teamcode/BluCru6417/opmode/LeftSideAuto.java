@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.BluCru6417.opmode;
 
-import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -9,8 +8,8 @@ import org.firstinspires.ftc.teamcode.BluCru6417.Hardware6417;
 import org.firstinspires.ftc.teamcode.BluCru6417.Trajectories6417;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
-@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Red Stage side")
-public class RedStageSide extends LinearOpMode{
+@com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Left Side Auto")
+public class LeftSideAuto extends LinearOpMode{
     ElapsedTime runtime = new ElapsedTime();
     int position;
     enum STATE{
@@ -39,14 +38,14 @@ public class RedStageSide extends LinearOpMode{
         robot.retractWrist();
 
         //build trajectory sequences
-        robot.setPoseEstimate(Trajectories6417.positions[0]);
+        robot.setPoseEstimate(Trajectories6417.leftPositions[0]);
 
-        TrajectorySequence startTrajectory = Trajectories6417.startAuto(robot);
-        TrajectorySequence dropTrajectory = Trajectories6417.dropCone(robot);
-        TrajectorySequence grabTrajectory = Trajectories6417.grabCone(robot);
-        TrajectorySequence firstParkPosition = Trajectories6417.firstParkPositionBuilder(robot);
-        TrajectorySequence secondParkPosition = Trajectories6417.secondParkPositionBuilder(robot);
-        TrajectorySequence thirdParkPosition = Trajectories6417.thirdParkPositionBuilder(robot);
+        TrajectorySequence startTrajectory = Trajectories6417.leftStartAuto(robot);
+        TrajectorySequence dropTrajectory = Trajectories6417.leftDropCone(robot);
+        TrajectorySequence grabTrajectory = Trajectories6417.leftGrabCone(robot);
+        TrajectorySequence firstParkPosition = Trajectories6417.firstParkPositionBuilder(robot, false);
+        TrajectorySequence secondParkPosition = Trajectories6417.secondParkPositionBuilder(robot, false);
+        TrajectorySequence thirdParkPosition = Trajectories6417.thirdParkPositionBuilder(robot, false);
         TrajectorySequence parkTrajectory = secondParkPosition;
 
         int coneStack = 4;
