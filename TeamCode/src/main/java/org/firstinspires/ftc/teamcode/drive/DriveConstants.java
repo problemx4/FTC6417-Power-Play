@@ -34,7 +34,7 @@ public class DriveConstants {
      * from DriveVelocityPIDTuner.
      */
     public static final boolean RUN_USING_ENCODER = true;
-    public static PIDFCoefficients MOTOR_VELO_PID = new PIDFCoefficients(4, 0, .9,13.9);
+    public static PIDFCoefficients MOTOR_VELO_PID = new PIDFCoefficients(3, 0, 0.15,13.7);
 
     /*
      * These are physical constants that can be determined from your robot (including the track
@@ -45,8 +45,8 @@ public class DriveConstants {
      * convenience. Make sure to exclude any gear ratio included in MOTOR_CONFIG from GEAR_RATIO.
      */
     public static double WHEEL_RADIUS = 1.8898; // in
-    public static double GEAR_RATIO = 1 * (63.0 / 60.35) * (59.5 / 60.49) * (62.0 / 60.41) * (60.0 / 60.4); // output (wheel) speed / input (motor) speed
-    public static double TRACK_WIDTH = 12.3; // in
+    public static double GEAR_RATIO = 1 * (60.66 / 59.92); // output (wheel) speed / input (motor) speed
+    public static double TRACK_WIDTH = 9; // in
 
     /*
      * These are the feedforward parameters used to model the drive motor behavior. If you are using
