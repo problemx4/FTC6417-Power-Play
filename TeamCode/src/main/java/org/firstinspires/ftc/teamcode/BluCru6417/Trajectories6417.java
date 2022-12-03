@@ -11,11 +11,12 @@ public class Trajectories6417 implements ControlConstants{
     static TrajectoryVelocityConstraint slowVelocity = SampleMecanumDrive.getVelocityConstraint(10, Math.toRadians(90), 12.3);
 
     //2d array of robot positions, each row structured as follows: [x pos, y pos, robot angle]
-    static Pose2d[] positions = {
-            new Pose2d(36, -65, Math.toRadians(90)), //starting position
+    public static Pose2d[] positions = {
+            new Pose2d(36, -64, Math.toRadians(90)), //starting position
             new Pose2d(36, -12, Math.toRadians(45)), //central position
-            new Pose2d(56, -12, Math.toRadians(0)),  //cone grabbing position
-            new Pose2d(36, -7, Math.toRadians(90)),  //push cone beyond
+            new Pose2d(54, -12, Math.toRadians(0)),  //ready to grab cone position
+            new Pose2d(36, 0, Math.toRadians(90)),  //push cone beyond
+            new Pose2d(36, -12, Math.toRadians(0)), //after dropping cone
     };
 
     public static TrajectorySequence startAuto(Hardware6417 robot){
@@ -49,13 +50,13 @@ public class Trajectories6417 implements ControlConstants{
                     //drop cone
                     robot.openGrabber();
                 })
-                .UNSTABLE_addTemporalMarkerOffset(.3, () -> {
+                .UNSTABLE_addTemporalMarkerOffset(.2, () -> {
                     //drop cone
                     robot.closeGrabber();
                 })
                 .setVelConstraint(normalVelocity)
                 .setTangent(Math.toRadians(45))
-                .UNSTABLE_addTemporalMarkerOffset(.3,() -> {
+                .UNSTABLE_addTemporalMarkerOffset(.2,() -> {
                     //drop slider
                     robot.autoArm(armServoDownPos);
                     robot.clearSliders(armClearDelta);
@@ -65,12 +66,12 @@ public class Trajectories6417 implements ControlConstants{
                     robot.autoSlide(sliderBasePos);
                     robot.retractWrist();
                 })
-                .splineToSplineHeading(positions[1], Math.toRadians(45))
+                .splineToSplineHeading(positions[4], Math.toRadians(45))
                 .build();
     }
 
     public static TrajectorySequence grabCone(Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[1])
+        return robot.trajectorySequenceBuilder(positions[4])
                 //grabbing cone segment, raise slider to grab cone in autonomous
                 .setVelConstraint(normalVelocity)
                 .setTangent(Math.toRadians(0))
@@ -80,7 +81,7 @@ public class Trajectories6417 implements ControlConstants{
                     //grab cone
                     robot.openGrabber();
                 })
-                .forward(9)
+                .forward(10)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //grab cone
                     robot.closeGrabber();
@@ -89,7 +90,7 @@ public class Trajectories6417 implements ControlConstants{
                     // raise slider off stack
                     robot.clearSliders(coneClearDelta);
                 })
-                .waitSeconds(1)
+                .waitSeconds(0.2)
                 .setVelConstraint(normalVelocity)
                 .setTangent(Math.toRadians(180))
                 .UNSTABLE_addTemporalMarkerOffset(1,() -> {
@@ -124,7 +125,7 @@ public class Trajectories6417 implements ControlConstants{
 
     public static boolean isCyclePossible(double elapsedTime){
         double cycleTime = 8;
-        double parkTime = 1;
+        double parkTime = 3;
         double autoTime = 30;
 
         //check if the amount of time left is more than the time it takes to cycle

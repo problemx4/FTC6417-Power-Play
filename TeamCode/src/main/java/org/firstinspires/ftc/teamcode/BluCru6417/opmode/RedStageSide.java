@@ -34,10 +34,12 @@ public class RedStageSide extends LinearOpMode{
         Hardware6417 robot = new Hardware6417(hardwareMap);
         robot.initCamera(hardwareMap, telemetry);
 
-        robot.start();
+        robot.closeGrabber();
+        sleep(500);
+        robot.retractWrist();
 
         //build trajectory sequences
-        robot.setPoseEstimate(new Pose2d(36, -65, Math.toRadians(90)));
+        robot.setPoseEstimate(Trajectories6417.positions[0]);
 
         TrajectorySequence startTrajectory = Trajectories6417.startAuto(robot);
         TrajectorySequence dropTrajectory = Trajectories6417.dropCone(robot);
