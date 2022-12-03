@@ -36,7 +36,7 @@ public interface ControlConstants {
 
     //encoder tick variables
     int sliderBasePos               = 0;
-    int sliderStackedConePos        = 100;
+    int sliderStackedConePos        = 110;
     int sliderLowPos                = 300;
     int sliderMedPos                = 1200;
     int sliderHighPos               = 2100;
