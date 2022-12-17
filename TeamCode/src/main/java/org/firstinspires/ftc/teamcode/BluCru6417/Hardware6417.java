@@ -128,7 +128,6 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
      * rotationPID(double angle) - controls rotation in PID fashion to turn to a specific angle useing IMU
      * translationPID(double position) - gets current position relative to poles using senors than PID's to the position to be in the middle
      *
-     *
      * manualSlide(power) - moves sliders
      * autoSlide(position) - runs slider to position
      * resetSliders() - reset slider encoders
@@ -202,7 +201,6 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
         globalAngle = 0;
     }
-
 
 
     public void rotationPID(double angle){

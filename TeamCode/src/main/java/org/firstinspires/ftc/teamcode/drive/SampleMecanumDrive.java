@@ -283,17 +283,22 @@ public class SampleMecanumDrive extends MecanumDrive {
 
     //my own method
     public Integer getWheelTicks(int wheel){
-        switch(wheel){
-            case 0:
-                return leftFront.getCurrentPosition();
-            case 1:
-                return leftRear.getCurrentPosition();
-            case 2:
-                return rightRear.getCurrentPosition();
-            case 3:
-                return rightFront.getCurrentPosition();
-            default:
-                return -666;
+        if(RUN_USING_ENCODER){
+            switch(wheel){
+                case 0:
+                    return leftFront.getCurrentPosition();
+                case 1:
+                    return leftRear.getCurrentPosition();
+                case 2:
+                    return rightRear.getCurrentPosition();
+                case 3:
+                    return rightFront.getCurrentPosition();
+                default:
+                    return -666;
+            }
+        }
+        else{
+            return 666;
         }
     }
 

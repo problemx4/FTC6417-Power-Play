@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.BluCru6417.opmode;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -71,8 +72,11 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
 
         //setup robot
         //STOP MOTORS
+        robot.setWeightedDrivePower(new Pose2d(0,0,0));
         //GRAB
+        robot.closeGrabber();
         //SET TURRET TO FORWARD
+        robot.autoTurret(turretForwardPos);
 
         //wait for start and reset timer
         waitForStart();
