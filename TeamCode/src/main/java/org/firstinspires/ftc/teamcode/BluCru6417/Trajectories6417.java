@@ -41,7 +41,6 @@ public class Trajectories6417 implements ControlConstants{
                 .setTangent(Math.toRadians(-90))
                 .splineToSplineHeading(rightPositions[1], Math.toRadians(-90))
                 .UNSTABLE_addTemporalMarkerOffset(0, () -> {
-                    robot.retractWrist();
                 })
                 .build();
     }
@@ -54,7 +53,6 @@ public class Trajectories6417 implements ControlConstants{
                 .setTangent(Math.toRadians(-90))
                 .splineToSplineHeading(leftPositions[1], Math.toRadians(-90))
                 .UNSTABLE_addTemporalMarkerOffset(0, () -> {
-                    robot.retractWrist();
                 })
                 .build();
     }
@@ -68,8 +66,6 @@ public class Trajectories6417 implements ControlConstants{
                 })
                 .UNSTABLE_addTemporalMarkerOffset(0.3, () -> {
                     //move arm
-                    robot.autoArm(armServoBackwardsPos);
-                    robot.autoWrist();
                 })
                 .waitSeconds(1)
                 .back(11 + droppingCorrection)
@@ -85,13 +81,10 @@ public class Trajectories6417 implements ControlConstants{
                 .setTangent(Math.toRadians(45))
                 .UNSTABLE_addTemporalMarkerOffset(.2,() -> {
                     //drop slider
-                    robot.autoArm(armServoDownPos);
-                    robot.clearSliders(armClearDelta);
                 })
                 .UNSTABLE_addTemporalMarkerOffset(.5,() -> {
                     //drop slider
                     robot.autoSlide(sliderBasePos);
-                    robot.retractWrist();
                 })
                 .splineToSplineHeading(rightPositions[4], Math.toRadians(45))
                 .build();
@@ -106,8 +99,6 @@ public class Trajectories6417 implements ControlConstants{
                 })
                 .UNSTABLE_addTemporalMarkerOffset(0.3, () -> {
                     //move arm
-                    robot.autoArm(armServoBackwardsPos);
-                    robot.autoWrist();
                 })
                 .waitSeconds(1)
                 .back(11 + droppingCorrection)
@@ -123,13 +114,10 @@ public class Trajectories6417 implements ControlConstants{
                 .setTangent(Math.toRadians(135))
                 .UNSTABLE_addTemporalMarkerOffset(.2,() -> {
                     //drop slider
-                    robot.autoArm(armServoDownPos);
-                    robot.clearSliders(armClearDelta);
                 })
                 .UNSTABLE_addTemporalMarkerOffset(.5,() -> {
                     //drop slider
                     robot.autoSlide(sliderBasePos);
-                    robot.retractWrist();
                 })
                 .splineToSplineHeading(leftPositions[4], Math.toRadians(135))
                 .build();
@@ -160,7 +148,6 @@ public class Trajectories6417 implements ControlConstants{
                 .setTangent(Math.toRadians(180))
                 .UNSTABLE_addTemporalMarkerOffset(1,() -> {
                     robot.autoSlide(sliderBasePos);
-                    robot.retractWrist();
                 })
                 .splineToSplineHeading(rightPositions[1], Math.toRadians(180))
                 .build();
@@ -191,7 +178,6 @@ public class Trajectories6417 implements ControlConstants{
                 .setTangent(Math.toRadians(0))
                 .UNSTABLE_addTemporalMarkerOffset(1,() -> {
                     robot.autoSlide(sliderBasePos);
-                    robot.retractWrist();
                 })
                 .splineToSplineHeading(leftPositions[1], Math.toRadians(0))
                 .build();

@@ -34,9 +34,9 @@ public class RightSideAuto extends LinearOpMode{
         Hardware6417 robot = new Hardware6417(hardwareMap);
         robot.initCamera(hardwareMap, telemetry);
 
+        //start robot
         robot.closeGrabber();
         sleep(500);
-        robot.retractWrist();
 
         //build trajectory sequences
         robot.setPoseEstimate(Trajectories6417.rightPositions[0]);
@@ -138,7 +138,6 @@ public class RightSideAuto extends LinearOpMode{
                         else{
                             currentState = STATE.GRABBING;
                             robot.autoSlide(ControlConstants.sliderStackedConePos * coneStack);
-                            robot.autoWrist();
                             robot.followTrajectorySequenceAsync(grabTrajectory);
                             coneStack--;
                         }
@@ -160,8 +159,6 @@ public class RightSideAuto extends LinearOpMode{
                 case PARKING:
                     //check if robot is done parking
                     if(!robot.isBusy()){
-                        robot.autoWrist();
-                        robot.autoArm(ControlConstants.armServoDownPos);
                         currentState = STATE.IDLE;
                     }
                 case IDLE:
