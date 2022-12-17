@@ -23,15 +23,14 @@ import org.openftc.easyopencv.OpenCvWebcam;
  * This hardware class assumes the following device names have been configured on the robot:
  * Note:  All names are uppercase
  *
- * Motor channel:   leftFront drive motor:          "FrontLeft"
- * Motor channel:   rightFront drive motor:         "FrontRight"
- * Motor channel:   leftRear drive motor:           "RearLeft"
- * Motor channel:   rightRear drive motor:          "RearRight"
+ * Motor channel:   leftFront drive motor:          "FrontLeft" *
+ * Motor channel:   rightFront drive motor:         "FrontRight" *
+ * Motor channel:   leftRear drive motor:           "RearLeft" *
+ * Motor channel:   rightRear drive motor:          "RearRight" *
  * Motor channel:   left slider motor:              "LeftSlider" *
  * Motor channel:   right slider motor:             "RightSlider" *
- * Servo channel:   arm servo:                      "Arm" *
- * Servo channel:   wrist servo:                    "Wrist" *
- * Servo channel:   grabber Servo:                  "Grabber"
+ * Servo channel:   turret servo:                   "Turret" *
+ * Servo channel:   grabber Servo:                  "Grabber" *
  */
 
 public class Hardware6417 extends SampleMecanumDrive implements ControlConstants{
@@ -40,13 +39,10 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     public DcMotorEx leftSlider = null;
     public DcMotorEx rightSlider = null;
 
-    public Servo arm            = null;
-    public Servo wrist          = null;
+    public Servo turret        = null;
     public Servo grabber        = null;
 
-    //imu variables
-    //public BNO055IMU imu;
-
+    //angle variables
     double lastAngle;
     double globalAngle;
 
@@ -79,9 +75,8 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         leftSlider  = ahwMap.get(DcMotorEx.class, "LeftSlider");
         rightSlider = ahwMap.get(DcMotorEx.class, "RightSlider");
 
-        arm         = ahwMap.get(Servo.class, "Arm");
+        turret      = ahwMap.get(Servo.class, "Turret");
         grabber     = ahwMap.get(Servo.class, "Grabber");
-        wrist       = ahwMap.get(Servo.class, "Wrist");
 
         //set direction of motors accordingly
         leftSlider.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -124,41 +119,29 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
     /**
      * Robot Methods:
-     * start(startGrabPos) - sets grabber to starting position, other necessary starting conditions
      * telemetry(tele) - telemetry
      *
      * holonomicDrive(power, angle) - holonomic drive
      * getCumulativeAngle() - get cumulative angle of robot
      * resetAngle() - resets angle
      *
+     * rotationPID(double angle) - controls rotation in PID fashion to turn to a specific angle useing IMU
+     * translationPID(double position) - gets current position relative to poles using senors than PID's to the position to be in the middle
+     *
+     *
      * manualSlide(power) - moves sliders
      * autoSlide(position) - runs slider to position
      * resetSliders() - reset slider encoders
      *
-     * manualArm(power) - moves arm
-     * autoArm(position) - runs arm to position
-     * maintainArm() - sets arm power based on cos(getArmAngle()) to maintain its position (may not be necessary)
-     * getArmAngle() - returns the angle of the arm based on encoder
-     * resetArm() - reset arm encoder
-     *
-     * manualWrist() - moves wrist
-     * autoWrist() - uses wristAngleToPower(getArmAngle()) to set wrist position automatically
-     * wristAngleToPower(angle) - converts desired radian angle into servo power
+     * autoTurret(position) - moves turret to position
+     * manualTurret(delta) - manually move turret
      *
      * grab(pos) - sets grabber servo
      * openGrabber() - opens grabber
      * closeGrabber() - closes grabber
      *
-     * stop() - stops all drive motors
-     * end() - stops all motors
+     * stop() - stops all motors
      */
-
-    public void start(){
-        stop();
-        manualSlide(0,true);
-        grabber.setPosition(grabberClosePos);
-        arm.setPosition(armStartPos);
-    }
 
     public void telemetry(Telemetry tele){
         tele.addData("left front Pos", getWheelTicks(0));
@@ -168,10 +151,8 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
         tele.addData("left slider Pos", leftSlider.getCurrentPosition());
         tele.addData("right slider pos", rightSlider.getCurrentPosition());
-        tele.addData("arm pos", arm.getPosition());
-        tele.addData("arm angle", getArmAngle());
 
-        tele.addData("Wrist position", wrist.getPosition());
+        tele.addData("Turret position", turret.getPosition());
 
         tele.addData("Cumulative Angle", Math.toDegrees(getCumulativeAngle()));
         tele.addData("RR Angle", Math.toDegrees(getRawExternalHeading()));
@@ -222,6 +203,15 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         globalAngle = 0;
     }
 
+
+
+    public void rotationPID(double angle){
+
+    }
+
+    public void translationPID(double angle){
+
+    }
 
 
     public void manualSlide(double power, boolean limiter){
@@ -295,37 +285,14 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
 
 
-    //arm servo code
-    public void manualArm(double delta){
-        double newPosition = Range.clip(arm.getPosition() + delta,0,1);
-        arm.setPosition(newPosition);
+    //turret code
+    public void autoTurret(double position){
+        turret.setPosition(position);
     }
 
-    public void autoArm(double position){
-        arm.setPosition(position);
-    }
-
-    public double getArmAngle(){
-        return ((arm.getPosition() - armServoVerticalPosition) / (armServoHorizontalPosition - armServoVerticalPosition)) * (Math.PI / 2.0);
-    }
-
-
-
-    public void manualWrist(double delta){
-        double newPosition = Range.clip(wrist.getPosition() + delta,0,1);
-        wrist.setPosition(newPosition);
-    }
-
-    public void autoWrist(){
-        wrist.setPosition(wristAngleToPower(getArmAngle()));
-    }
-
-    public void retractWrist(){
-        wrist.setPosition(wristHorizontalPosition); //maybe make this negative
-    }
-
-    public static double wristAngleToPower(double angle){
-        return ((angle / (Math.PI / 2.0)) * (wristHorizontalPosition - wristVerticalPosition)) + wristVerticalPosition;
+    public void manualTurret(double delta){
+        double newPos = Range.clip(turret.getPosition() + (delta * manualServoDelta), turretMinPos, turretMaxPos);
+        autoTurret(newPos);
     }
 
 
@@ -346,12 +313,6 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
     public void stop(){
         setWeightedDrivePower(new Pose2d(0,0,0));
-    }
-
-    public void end(){
-        stop();
         manualSlide(0,true);
-        grabber.setPosition(grabberClosePos);
-        arm.setPosition(armStartPos);
     }
 }
