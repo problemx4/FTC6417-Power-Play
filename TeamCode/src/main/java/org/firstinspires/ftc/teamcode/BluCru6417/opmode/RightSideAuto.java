@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.BluCru6417.opmode;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 

@@ -10,11 +10,13 @@ public class Trajectories6417 implements ControlConstants{
     static TrajectoryVelocityConstraint normalVelocity = SampleMecanumDrive.getVelocityConstraint(40, Math.toRadians(180), 12.3);
     static TrajectoryVelocityConstraint slowVelocity = SampleMecanumDrive.getVelocityConstraint(10, Math.toRadians(90), 12.3);
 
-    static double correction = 1;
+    static double droppingCorrection = 0; // positive for further
+    static double startCorrection = 1.0; // positive for closer
+    static double grabbingCorrection = -0.5; // positive for further into wall
 
     //2d array of robot positions, each row structured as follows: [x pos, y pos, robot angle]
     public static Pose2d[] rightPositions = {
-            new Pose2d(36, -63.5, Math.toRadians(90)), //starting position
+            new Pose2d(36, -65 + startCorrection, Math.toRadians(90)), //starting position
             new Pose2d(36, -12, Math.toRadians(45)), //central position
             new Pose2d(54, -12, Math.toRadians(0)),  //ready to grab cone position
             new Pose2d(36, -2.5, Math.toRadians(90)),  //push cone beyond
@@ -23,7 +25,7 @@ public class Trajectories6417 implements ControlConstants{
     };
 
     public static Pose2d[] leftPositions = {
-            new Pose2d(-36, -63.5, Math.toRadians(90)), //starting position
+            new Pose2d(-36, -65 + startCorrection, Math.toRadians(90)), //starting position
             new Pose2d(-36, -12, Math.toRadians(135)), //central position
             new Pose2d(-54, -12, Math.toRadians(180)),  //ready to grab cone position
             new Pose2d(-36, -2.5, Math.toRadians(90)),  //push cone beyond
@@ -70,7 +72,7 @@ public class Trajectories6417 implements ControlConstants{
                     robot.autoWrist();
                 })
                 .waitSeconds(1)
-                .back(11 + correction)
+                .back(11 + droppingCorrection)
                 .UNSTABLE_addTemporalMarkerOffset(0, () -> {
                     //drop cone
                     robot.openGrabber();
@@ -108,7 +110,7 @@ public class Trajectories6417 implements ControlConstants{
                     robot.autoWrist();
                 })
                 .waitSeconds(1)
-                .back(11 + correction)
+                .back(11 + droppingCorrection)
                 .UNSTABLE_addTemporalMarkerOffset(0, () -> {
                     //drop cone
                     robot.openGrabber();
@@ -144,7 +146,7 @@ public class Trajectories6417 implements ControlConstants{
                     //grab cone
                     robot.openGrabber();
                 })
-                .forward(8)
+                .forward(8 + grabbingCorrection)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //grab cone
                     robot.closeGrabber();
@@ -175,7 +177,7 @@ public class Trajectories6417 implements ControlConstants{
                     //grab cone
                     robot.openGrabber();
                 })
-                .forward(8)
+                .forward(8 + grabbingCorrection)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //grab cone
                     robot.closeGrabber();

@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.BluCru6417.opmode;
 
+import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -147,6 +148,7 @@ public class LeftSideAuto extends LinearOpMode{
                     //check if grabbing is done
                     if(!robot.isBusy()){
                         if(Trajectories6417.isCyclePossible(runtime.time()) && autoPath == AUTOPATH.PARKANDCYCLE && !(coneStack < 0)){
+                            robot.setPoseEstimate(new Pose2d(-36 - 1.0, -12, Math.toRadians(135)));
                             currentState = STATE.DROPPING;
                             robot.followTrajectorySequenceAsync(dropTrajectory);
                         }
