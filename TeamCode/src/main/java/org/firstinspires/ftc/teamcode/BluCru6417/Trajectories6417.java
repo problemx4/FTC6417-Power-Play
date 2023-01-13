@@ -11,16 +11,17 @@ public class Trajectories6417 implements ControlConstants{
     //2d array of robot positions, each row structured as follows: [x pos, y pos, robot angle]
     public Pose2d[] positions;
     public double[] angles;
-    public int strafeAmounts[];
+    boolean isRight;
 
     public Trajectories6417(boolean right){
+        isRight = right;
         if(right){
             positions = new Pose2d[]{
                     new Pose2d(36, -65, Math.toRadians(-90)), //starting position       0
                     new Pose2d(36, -10, Math.toRadians(-90)),  //push pos                1
                     new Pose2d(48, -12, Math.toRadians(-90)), //central position        2
                     new Pose2d(54, -12, Math.toRadians(-90)), //ready to grab cone pos  3
-                    new Pose2d(57.5, -12, Math.toRadians(-90)), //grab cone pos           4
+                    new Pose2d(57, -12, Math.toRadians(-90)), //grab cone pos           4
             };
             angles = new double[]{
                     Math.toRadians(0),
@@ -30,11 +31,6 @@ public class Trajectories6417 implements ControlConstants{
                     Math.toRadians(90),
                     Math.toRadians(-45)
             };
-            strafeAmounts = new int[]{
-                    -36,
-                    -12,
-                    12,
-            };
         }
         else{
             positions = new Pose2d[]{
@@ -42,7 +38,7 @@ public class Trajectories6417 implements ControlConstants{
                     new Pose2d(-36, -10, Math.toRadians(-90)), //push pos                1
                     new Pose2d(-58, -12, Math.toRadians(-90)), //central position        2
                     new Pose2d(-54, -12, Math.toRadians(-90)), //ready to grab cone pos  3
-                    new Pose2d(-57.5, -12, Math.toRadians(-90)), //grab cone pos           4
+                    new Pose2d(-57, -12, Math.toRadians(-90)), //grab cone pos           4
             };
             angles = new double[]{
                     Math.toRadians(180),
@@ -51,11 +47,6 @@ public class Trajectories6417 implements ControlConstants{
                     Math.toRadians(-90),
                     Math.toRadians(-90),
                     Math.toRadians(225)
-            };
-            strafeAmounts = new int[]{
-                    -36,
-                    -12,
-                    12,
             };
         }
     }
@@ -99,8 +90,9 @@ public class Trajectories6417 implements ControlConstants{
                 .build();
     }
 
-    public TrajectorySequence grabCone(Hardware6417 robot){
+    public TrajectorySequence cycle(Hardware6417 robot){
         return robot.trajectorySequenceBuilder(positions[2])
+                //GRABBING CONE
                 .setVelConstraint(slowVelocity)
                 .setTangent(angles[0])
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
@@ -115,72 +107,83 @@ public class Trajectories6417 implements ControlConstants{
                     robot.closeGrabber();
                 })
                 .waitSeconds(0.3)
-                .build();
-    }
-
-    public TrajectorySequence returnDrop(Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[4])
+                //RETURNING TO DROP
                 .setVelConstraint(normalVelocity)
-                .UNSTABLE_addTemporalMarkerOffset(0.2,() -> {
+                .setTangent(angles[2])
+                .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //raise slider to drop cone
                     robot.autoSlide(sliderLowPos);
                     //retract wrist
-                    robot.moveWrist(retractWristPos);
+                    //robot.moveWrist(retractWristPos);
                 })
-                .waitSeconds(0.1)
-                .setTangent(angles[2])
-                .UNSTABLE_addTemporalMarkerOffset(0.2,() -> {
+                .UNSTABLE_addTemporalMarkerOffset(0.4,() -> {
                     //move turret to drop cone
                     robot.autoTurret(0);
                 })
+                .waitSeconds(0.4)
                 .splineToSplineHeading(positions[2], angles[2])
-                .build();
-    }
-
-    public TrajectorySequence returnPark(Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[4])
-                .setVelConstraint(normalVelocity)
-                .UNSTABLE_addTemporalMarkerOffset(0.2,() -> {
-                    //clear cone
-                    robot.autoSlide(robot.slider.getCurrentPosition() + coneClearDelta);
-                    //retract wrist
-                    robot.moveWrist(retractWristPos);
+                //DROPPING CONE
+                .setVelConstraint(slowVelocity)
+                .UNSTABLE_addTemporalMarkerOffset(0,() -> {
+                    //lower wrist
+                    robot.moveWrist(lowerWristPos);
+                })
+                .UNSTABLE_addTemporalMarkerOffset(0.3,() -> {
+                    //drop cone
+                    robot.openGrabber();
                 })
                 .waitSeconds(0.5)
-                .setTangent(angles[2])
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
-                    //move turret to drop cone
-                    robot.autoTurret(0);
+                    //close grabber
+                    robot.closeGrabber();
+                    robot.autoTurret(angles[4]);
                 })
-                .UNSTABLE_addTemporalMarkerOffset(0.5,() -> {
-                    //lower slide to base position
-                    robot.autoSlide(sliderBasePos);
-                })
-                .splineToSplineHeading(positions[2], angles[2])
+                .waitSeconds(0.2)
                 .build();
     }
 
     public TrajectorySequence firstParkPositionBuilder (Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[2])
-                .strafeLeft(strafeAmounts[0])
-                .build();
+        if(isRight){
+            return robot.trajectorySequenceBuilder(positions[2])
+                    .strafeRight(36)
+                    .build();
+        }
+        else{
+            return robot.trajectorySequenceBuilder(positions[2])
+                    .strafeLeft(36)
+                    .build();
+        }
     }
 
     public TrajectorySequence secondParkPositionBuilder (Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[2])
-                .strafeLeft(strafeAmounts[1])
-                .build();
+        if(isRight){
+            return robot.trajectorySequenceBuilder(positions[2])
+                    .strafeRight(12)
+                    .build();
+        }
+        else{
+            return robot.trajectorySequenceBuilder(positions[2])
+                    .strafeLeft(12)
+                    .build();
+        }
     }
 
     public TrajectorySequence thirdParkPositionBuilder (Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[2])
-                .strafeLeft(strafeAmounts[2])
-                .build();
+        if(isRight){
+            return robot.trajectorySequenceBuilder(positions[2])
+                    .strafeLeft(12)
+                    .build();
+        }
+        else{
+            return robot.trajectorySequenceBuilder(positions[2])
+                    .strafeRight(12)
+                    .build();
+        }
     }
 
 
     public boolean isCyclePossible(double elapsedTime){
-        double cycleTime = 8;
+        double cycleTime = 5;
         double parkTime = 3;
         double autoTime = 30;
 
