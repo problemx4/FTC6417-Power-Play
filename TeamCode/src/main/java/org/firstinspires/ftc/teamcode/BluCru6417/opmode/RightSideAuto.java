@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.BluCru6417.opmode;
 
-import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -12,11 +11,12 @@ import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Right Side Auto")
 public class RightSideAuto extends LinearOpMode{
     ElapsedTime runtime = new ElapsedTime();
+    boolean finished = false;
     int position;
     enum STATE{
         START,
         DROPPING,
-        GRABBING,
+        CYCLING,
         PARKING,
         IDLE
     }
@@ -36,17 +36,20 @@ public class RightSideAuto extends LinearOpMode{
 
         //start robot
         robot.closeGrabber();
+        robot.autoTurret(0);
         sleep(500);
 
         //build trajectory sequences
-        robot.setPoseEstimate(Trajectories6417.rightPositions[0]);
+        Trajectories6417 traj = new Trajectories6417(true);
 
-        TrajectorySequence startTrajectory = Trajectories6417.rightStartAuto(robot);
-        TrajectorySequence dropTrajectory = Trajectories6417.rightDropCone(robot);
-        TrajectorySequence grabTrajectory = Trajectories6417.rightGrabCone(robot);
-        TrajectorySequence firstParkPosition = Trajectories6417.firstParkPositionBuilder(robot, true);
-        TrajectorySequence secondParkPosition = Trajectories6417.secondParkPositionBuilder(robot, true);
-        TrajectorySequence thirdParkPosition = Trajectories6417.thirdParkPositionBuilder(robot, true);
+        robot.setPoseEstimate(traj.positions[0]);
+
+        TrajectorySequence startTrajectory = traj.startAuto(robot);
+        TrajectorySequence dropTrajectory = traj.dropCone(robot);
+        TrajectorySequence cycleTrajectory = traj.cycle(robot);
+        TrajectorySequence firstParkPosition = traj.firstParkPositionBuilder(robot);
+        TrajectorySequence secondParkPosition = traj.secondParkPositionBuilder(robot);
+        TrajectorySequence thirdParkPosition = traj.thirdParkPositionBuilder(robot);
         TrajectorySequence parkTrajectory = secondParkPosition;
 
         int coneStack = 4;
@@ -118,12 +121,16 @@ public class RightSideAuto extends LinearOpMode{
                 case START:
                     //check if robot is done with START
                     if(!robot.isBusy()){
-                        if((Trajectories6417.isCyclePossible(runtime.time()) && autoPath == AUTOPATH.PARKANDCYCLE) || autoPath == AUTOPATH.PARKANDDROP){
+                        if(autoPath == AUTOPATH.PARKANDCYCLE || autoPath == AUTOPATH.PARKANDDROP){
                             currentState = STATE.DROPPING;
                             robot.followTrajectorySequenceAsync(dropTrajectory);
                         }
                         else{
                             currentState = STATE.PARKING;
+                            robot.closeGrabber();
+                            robot.autoSlide(ControlConstants.sliderBasePos);
+                            robot.moveWrist(ControlConstants.retractWristPos);
+                            robot.autoTurret(0);
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                     }
@@ -131,27 +138,35 @@ public class RightSideAuto extends LinearOpMode{
                 case DROPPING:
                     //check if robot is done with DROPPING
                     if(!robot.isBusy()){
-                        if(autoPath == AUTOPATH.PARKANDDROP){
+                        if(autoPath == AUTOPATH.PARKANDDROP || coneStack < 0){
                             currentState = STATE.PARKING;
+                            robot.closeGrabber();
+                            robot.autoSlide(ControlConstants.sliderBasePos);
+                            robot.moveWrist(ControlConstants.retractWristPos);
+                            robot.autoTurret(0);
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                         else{
-                            currentState = STATE.GRABBING;
+                            currentState = STATE.CYCLING;
                             robot.autoSlide(ControlConstants.sliderStackedConePos * coneStack);
-                            robot.followTrajectorySequenceAsync(grabTrajectory);
+                            robot.followTrajectorySequenceAsync(cycleTrajectory);
                             coneStack--;
                         }
                     }
                     break;
-                case GRABBING:
-                    //check if grabbing is done
+                case CYCLING:
                     if(!robot.isBusy()){
-                        if(Trajectories6417.isCyclePossible(runtime.time()) && autoPath == AUTOPATH.PARKANDCYCLE && !(coneStack < 0)){
-                            currentState = STATE.DROPPING;
-                            robot.followTrajectorySequenceAsync(dropTrajectory);
+                        if(traj.isCyclePossible(runtime.seconds())){
+                            robot.autoSlide(ControlConstants.sliderStackedConePos * coneStack);
+                            robot.followTrajectorySequenceAsync(cycleTrajectory);
+                            coneStack--;
                         }
                         else{
                             currentState = STATE.PARKING;
+                            robot.closeGrabber();
+                            robot.autoSlide(ControlConstants.sliderBasePos);
+                            robot.moveWrist(ControlConstants.retractWristPos);
+                            robot.autoTurret(0);
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                     }

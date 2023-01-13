@@ -12,11 +12,12 @@ import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous(name = "Left Side Auto")
 public class LeftSideAuto extends LinearOpMode{
     ElapsedTime runtime = new ElapsedTime();
+    boolean finished = false;
     int position;
     enum STATE{
         START,
         DROPPING,
-        GRABBING,
+        CYCLING,
         PARKING,
         IDLE
     }
@@ -25,8 +26,8 @@ public class LeftSideAuto extends LinearOpMode{
         PARKANDDROP,
         PARKANDCYCLE,
     }
-    STATE currentState;
-    AUTOPATH autoPath = AUTOPATH.PARKANDCYCLE;
+    RightSideAuto.STATE currentState;
+    RightSideAuto.AUTOPATH autoPath = RightSideAuto.AUTOPATH.PARKANDCYCLE;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -36,17 +37,20 @@ public class LeftSideAuto extends LinearOpMode{
 
         //start robot
         robot.closeGrabber();
+        robot.autoTurret(0);
         sleep(500);
 
         //build trajectory sequences
-        robot.setPoseEstimate(Trajectories6417.leftPositions[0]);
+        Trajectories6417 traj = new Trajectories6417(false);
 
-        TrajectorySequence startTrajectory = Trajectories6417.leftStartAuto(robot);
-        TrajectorySequence dropTrajectory = Trajectories6417.leftDropCone(robot);
-        TrajectorySequence grabTrajectory = Trajectories6417.leftGrabCone(robot);
-        TrajectorySequence firstParkPosition = Trajectories6417.firstParkPositionBuilder(robot, false);
-        TrajectorySequence secondParkPosition = Trajectories6417.secondParkPositionBuilder(robot, false);
-        TrajectorySequence thirdParkPosition = Trajectories6417.thirdParkPositionBuilder(robot, false);
+        robot.setPoseEstimate(traj.positions[0]);
+
+        TrajectorySequence startTrajectory = traj.startAuto(robot);
+        TrajectorySequence dropTrajectory = traj.dropCone(robot);
+        TrajectorySequence cycleTrajectory = traj.cycle(robot);
+        TrajectorySequence firstParkPosition = traj.firstParkPositionBuilder(robot);
+        TrajectorySequence secondParkPosition = traj.secondParkPositionBuilder(robot);
+        TrajectorySequence thirdParkPosition = traj.thirdParkPositionBuilder(robot);
         TrajectorySequence parkTrajectory = secondParkPosition;
 
         int coneStack = 4;
@@ -78,13 +82,13 @@ public class LeftSideAuto extends LinearOpMode{
             telemetry.update();
 
             if(gamepad1.a){
-                autoPath = AUTOPATH.PARKANDCYCLE;
+                autoPath = RightSideAuto.AUTOPATH.PARKANDCYCLE;
             }
             if(gamepad1.b){
-                autoPath = AUTOPATH.PARKANDDROP;
+                autoPath = RightSideAuto.AUTOPATH.PARKANDDROP;
             }
             if(gamepad1.x){
-                autoPath = AUTOPATH.PARK;
+                autoPath = RightSideAuto.AUTOPATH.PARK;
             }
         }
 
@@ -110,7 +114,7 @@ public class LeftSideAuto extends LinearOpMode{
 
         //start off robot path
         runtime.reset();
-        currentState = STATE.START;
+        currentState = RightSideAuto.STATE.START;
         robot.followTrajectorySequenceAsync(startTrajectory);
 
         while(!isStopRequested() && opModeIsActive()){
@@ -118,12 +122,13 @@ public class LeftSideAuto extends LinearOpMode{
                 case START:
                     //check if robot is done with START
                     if(!robot.isBusy()){
-                        if((Trajectories6417.isCyclePossible(runtime.time()) && autoPath == AUTOPATH.PARKANDCYCLE) || autoPath == AUTOPATH.PARKANDDROP){
-                            currentState = STATE.DROPPING;
+                        if(autoPath == RightSideAuto.AUTOPATH.PARKANDCYCLE || autoPath == RightSideAuto.AUTOPATH.PARKANDDROP){
+                            currentState = RightSideAuto.STATE.DROPPING;
                             robot.followTrajectorySequenceAsync(dropTrajectory);
                         }
                         else{
-                            currentState = STATE.PARKING;
+                            currentState = RightSideAuto.STATE.PARKING;
+                            robot.autoSlide(ControlConstants.sliderBasePos);
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                     }
@@ -131,28 +136,28 @@ public class LeftSideAuto extends LinearOpMode{
                 case DROPPING:
                     //check if robot is done with DROPPING
                     if(!robot.isBusy()){
-                        if(autoPath == AUTOPATH.PARKANDDROP){
-                            currentState = STATE.PARKING;
+                        if(autoPath == RightSideAuto.AUTOPATH.PARKANDDROP || coneStack < 0){
+                            currentState = RightSideAuto.STATE.PARKING;
+                            robot.autoSlide(ControlConstants.sliderBasePos);
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                         else{
-                            currentState = STATE.GRABBING;
+                            currentState = RightSideAuto.STATE.CYCLING;
                             robot.autoSlide(ControlConstants.sliderStackedConePos * coneStack);
-                            robot.followTrajectorySequenceAsync(grabTrajectory);
+                            robot.followTrajectorySequenceAsync(cycleTrajectory);
                             coneStack--;
                         }
                     }
                     break;
-                case GRABBING:
-                    //check if grabbing is done
+                case CYCLING:
                     if(!robot.isBusy()){
-                        if(Trajectories6417.isCyclePossible(runtime.time()) && autoPath == AUTOPATH.PARKANDCYCLE && !(coneStack < 0)){
-                            robot.setPoseEstimate(new Pose2d(-36 - 1.0, -12, Math.toRadians(135)));
-                            currentState = STATE.DROPPING;
-                            robot.followTrajectorySequenceAsync(dropTrajectory);
+                        if(traj.isCyclePossible(runtime.seconds())){
+                            robot.autoSlide(ControlConstants.sliderStackedConePos * coneStack);
+                            robot.followTrajectorySequenceAsync(cycleTrajectory);
+                            coneStack--;
                         }
                         else{
-                            currentState = STATE.PARKING;
+                            currentState = RightSideAuto.STATE.PARKING;
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                     }
@@ -160,7 +165,7 @@ public class LeftSideAuto extends LinearOpMode{
                 case PARKING:
                     //check if robot is done parking
                     if(!robot.isBusy()){
-                        currentState = STATE.IDLE;
+                        currentState = RightSideAuto.STATE.IDLE;
                     }
                 case IDLE:
                     break;
