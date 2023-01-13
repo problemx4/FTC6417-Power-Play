@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.BluCru6417;
 
+import com.acmerobotics.roadrunner.control.PIDFController;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -36,18 +37,18 @@ import org.openftc.easyopencv.OpenCvWebcam;
 public class Hardware6417 extends SampleMecanumDrive implements ControlConstants{
 
     //TeleOp variables
-    public DcMotorEx leftSlider = null;
-    public DcMotorEx rightSlider = null;
+    public DcMotorEx slider     = null;
 
-    public Servo turret        = null;
+    public Servo turret         = null;
     public Servo grabber        = null;
+    public Servo wrist          = null;
 
     //angle variables
     double lastAngle;
     double globalAngle;
 
     //camera variables
-    double[] subMatCenter = {0.8,0.6}; //NOT coordinates, these values are the % across the screen,.5 being the exact center, x,y from top left
+    double[] subMatCenter = {0.666,0.75}; //NOT coordinates, these values are the % across the screen,.5 being the exact center, x,y from top left
     int subMatWidth = 80;
     int subMatHeight = 100;
 
@@ -72,23 +73,20 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     /* Initialize standard Hardware interfaces */
     public void initIntake(HardwareMap ahwMap){
         // Define and initialize motor and servo
-        leftSlider  = ahwMap.get(DcMotorEx.class, "LeftSlider");
-        rightSlider = ahwMap.get(DcMotorEx.class, "RightSlider");
+        slider  = ahwMap.get(DcMotorEx.class, "Slider");
 
         turret      = ahwMap.get(Servo.class, "Turret");
         grabber     = ahwMap.get(Servo.class, "Grabber");
+        wrist       = ahwMap.get(Servo.class, "Wrist");
 
         //set direction of motors accordingly
-        leftSlider.setDirection(DcMotorSimple.Direction.REVERSE);
-        rightSlider.setDirection(DcMotorSimple.Direction.FORWARD);
+        slider.setDirection(DcMotorSimple.Direction.REVERSE);
 
         //set all motors to zero power
-        leftSlider.setPower(0);
-        rightSlider.setPower(0);
+        slider.setPower(0);
 
         //set brake behavior
-        leftSlider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightSlider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        slider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         //reset sliders
         resetSliders();
@@ -148,10 +146,10 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         tele.addData("right rear Pos", getWheelTicks(2));
         tele.addData("right front Pos", getWheelTicks(3));
 
-        tele.addData("left slider Pos", leftSlider.getCurrentPosition());
-        tele.addData("right slider pos", rightSlider.getCurrentPosition());
+        tele.addData("Slider pos", slider.getCurrentPosition());
 
         tele.addData("Turret position", turret.getPosition());
+        tele.addData("Wrist position", wrist.getPosition());
 
         tele.addData("Cumulative Angle", Math.toDegrees(getCumulativeAngle()));
         tele.addData("RR Angle", Math.toDegrees(getRawExternalHeading()));
@@ -213,84 +211,89 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
 
     public void manualSlide(double power, boolean limiter){
-        if(leftSlider.getMode() != DcMotor.RunMode.RUN_USING_ENCODER){
-            leftSlider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            rightSlider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        if(slider.getMode() != DcMotor.RunMode.RUN_USING_ENCODER){
+            slider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
 
         //check if slider is going beyond limits
         if(limiter){
-            if((leftSlider.getCurrentPosition() > sliderMaxPos || rightSlider.getCurrentPosition() > sliderMaxPos ) && power > 0){
-                leftSlider.setPower(0);
-                rightSlider.setPower(0);
+            if((slider.getCurrentPosition() > sliderMaxPos ) && power > 0){
+                slider.setPower(0);
                 return;
             }
-            if((leftSlider.getCurrentPosition() < 0 || rightSlider.getCurrentPosition() < 0 ) && power < 0){
-                leftSlider.setPower(0);
-                rightSlider.setPower(0);
+            if((slider.getCurrentPosition() < sliderMinPos ) && power < 0){
+                slider.setPower(0);
                 return;
             }
         }
 
-        leftSlider.setPower(power);
-        rightSlider.setPower(power);
+        slider.setPower(power);
     }
 
     public void autoSlide(int position){
-        if(leftSlider.getTargetPosition() != position || rightSlider.getTargetPosition() != position){
-            leftSlider.setTargetPosition(position);
-            rightSlider.setTargetPosition(position);
+        if(slider.getTargetPosition() != position){
+            slider.setTargetPosition(position);
 
-            if(leftSlider.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
-                leftSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                rightSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            if(slider.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
+                slider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
 
-            leftSlider.setPower(autoSlidePower);
-            rightSlider.setPower(autoSlidePower);
+            slider.setPower(autoSlidePower);
         }
     }
 
     public void clearSliders(int clearDelta){
-        int position = ((leftSlider.getCurrentPosition() + rightSlider.getCurrentPosition()) / 2) + clearDelta;
+        int position = (slider.getCurrentPosition()) + clearDelta;
 
-        leftSlider.setTargetPosition(position);
-        rightSlider.setTargetPosition(position);
+        slider.setTargetPosition(position);
 
-        if(leftSlider.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
-            leftSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            rightSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        if(slider.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
+            slider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         }
 
-        leftSlider.setPower(clearSlidePower);
-        rightSlider.setPower(clearSlidePower);
+        slider.setPower(clearSlidePower);
     }
 
     public void resetSliders(){
         //reset motor encoders
-        leftSlider.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightSlider.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        slider.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         //use motor encoders
-        leftSlider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightSlider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        slider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         //set motors to run to zero to avoid problems
-        leftSlider.setTargetPosition(0);
-        rightSlider.setTargetPosition(0);
+        slider.setTargetPosition(0);
         //lololol
     }
 
 
 
     //turret code
-    public void autoTurret(double position){
-        turret.setPosition(position);
+    public double turretAngleToPower(double angle){
+        double ratio = angle / (Math.PI / 2.0);
+        double quarterDistance = turretLeftPos - turretForwardPos;
+        return (quarterDistance * ratio) + turretForwardPos;
+    }
+
+    public void autoTurret(double angle){
+        turret.setPosition(Range.clip(turretAngleToPower(angle),turretRightPos,turretLeftPos));
     }
 
     public void manualTurret(double delta){
         double newPos = Range.clip(turret.getPosition() + (delta * manualServoDelta), turretMinPos, turretMaxPos);
-        autoTurret(newPos);
+        turret.setPosition(newPos);
+    }
+
+
+
+    //wrist control
+    public void moveWrist(double pos){
+        wrist.setPosition(pos);
+    }
+
+    public void manualMoveWrist(double delta){
+        double newPos = Range.clip(wrist.getPosition() + (delta * manualServoDelta), turretMinPos, turretMaxPos);
+        wrist.setPosition(newPos);
     }
 
 

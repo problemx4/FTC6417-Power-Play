@@ -24,22 +24,22 @@ import org.firstinspires.ftc.teamcode.BluCru6417.Hardware6417;
             left stick              - manual move turret
             right stick             - manual move slider
             left bumper             - toggle grabber
+            left trigger            - toggle turret field centric movement
             right bumper            - reset slider encoder
             right trigger           - turn off limiter
             a (x)                   - ground slider position
             b (circle)              - low slider position
             x (square)              - medium slider position
             y (triangle)            - high slider position
-            dpadUP                  - turret forward
-            dpadLeft                - turret left
-            dpadRight               - turret right
+            dpadDown                - turret forward
+            dpadRight               - turret left
+            dpadLeft                - turret right
+            dpadUP                  - toggle wrist
             */
 
 
 @TeleOp(name = "Main TeleOp", group = "TeleOp")
 public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstants{
-
-    ElapsedTime slideTimer = new ElapsedTime();
 
     //Enums for state machine
     enum SLIDESTATE{
@@ -48,6 +48,13 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         targetMed,
         targetHigh,
         manualSlide,
+    }
+
+    enum TURRETSTATE{
+        forward,
+        left,
+        right,
+        manual,
     }
 
 
@@ -76,24 +83,36 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         //GRAB
         robot.closeGrabber();
         //SET TURRET TO FORWARD
-        robot.autoTurret(turretForwardPos);
+        robot.autoTurret(0);
+        //Retract wrist
+        robot.moveWrist(retractWristPos);
 
         //wait for start and reset timer
         waitForStart();
-        slideTimer.reset();
 
         //variables for controlling
         double verticalControl, horizontalControl, rotateControl, currentDrivePower;
         double sliderControl;
+        double turretAngleOffset;
+        double turretReferenceAngle = 0;
 
         boolean maintainHeading = true;
-        boolean lastRB1 = false;
-        boolean lastLB2 = false;
+        boolean offsetTurret = false;
+        boolean lastOffsetTurret = false;
         boolean limiter = true;
         boolean grabbing = true;
+        boolean retract = true;
+        boolean lastRB1 = false;
+        boolean lastLB2 = false;
+        boolean lastLT2 = false;
+        boolean lastDU2 = false;
+
+        ElapsedTime slideTimer = new ElapsedTime();
 
         SLIDESTATE slideState = SLIDESTATE.manualSlide;
         SLIDESTATE lastSlideState = SLIDESTATE.manualSlide;
+
+        TURRETSTATE turretstate = TURRETSTATE.forward;
 
         //Control loop
         while(opModeIsActive()){
@@ -109,7 +128,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 horizontalControl = clipJoyInput(gamepad1.left_stick_x);
                 rotateControl = clipJoyInput(gamepad1.right_stick_x);
 
-                if(gamepad1.left_bumper || slideState == SLIDESTATE.targetHigh || robot.leftSlider.getCurrentPosition() > sliderHighPos || robot.rightSlider.getCurrentPosition() > sliderHighPos){
+                if(gamepad1.left_bumper || slideState == SLIDESTATE.targetHigh || robot.slider.getCurrentPosition() > sliderHighPos){
                     currentDrivePower = maxSlowerDrivePower;
                 }
                 else if(gamepad1.left_trigger > triggerSens){
@@ -148,17 +167,23 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 }
                 if(Math.abs(sliderControl) >= sens){
                     slideState = SLIDESTATE.manualSlide;
+                    robot.slider.setTargetPosition(robot.slider.getTargetPosition() + 1);
                 }
 
-                if(slideState == SLIDESTATE.targetBase && lastSlideState != SLIDESTATE.targetBase){
-                    robot.autoTurret(turretForwardPos);
-                    slideTimer.reset();
+                if(slideState != lastSlideState){
+                    retract = true;
+                    if(slideState == SLIDESTATE.targetBase){
+                        turretstate = TURRETSTATE.forward;
+                        slideTimer.reset();
+                    }
                 }
                 lastSlideState = slideState;
 
                 switch(slideState){
                     case targetBase:
-                        robot.autoSlide(sliderBasePos);
+                        if(slideTimer.seconds() > slideDownDelay){
+                            robot.autoSlide(sliderBasePos);
+                        }
                         break;
                     case targetLow:
                         robot.autoSlide(sliderLowPos);
@@ -179,18 +204,65 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
 
             //turretControl
             {
-                if(gamepad2.dpad_up){
-                    robot.autoTurret(turretForwardPos);
+                if(offsetTurret){
+                    turretAngleOffset = robot.getCumulativeAngle() - turretReferenceAngle;
                 }
-                if(gamepad2.dpad_left){
-                    robot.autoTurret(turretLeftPos);
-                }
-                if(gamepad2.dpad_right){
-                    robot.autoTurret(turretRightPos);
+                else{
+                    turretAngleOffset = 0;
                 }
 
-                if(gamepad2.left_stick_y > sens){
-                    robot.manualTurret(gamepad2.left_stick_y);
+                if(offsetTurret && !lastOffsetTurret){
+                    turretReferenceAngle = robot.getCumulativeAngle();
+                }
+                lastOffsetTurret = offsetTurret;
+
+                if((gamepad2.left_trigger > triggerSens) && !lastLT2){
+                    offsetTurret = !offsetTurret;
+                }
+                lastLT2 = gamepad2.left_trigger > triggerSens;
+
+                if(gamepad2.dpad_down){
+                    turretstate = TURRETSTATE.forward;
+                }
+                if(gamepad2.dpad_right && !gamepad2.dpad_up){
+                    turretstate = TURRETSTATE.left;
+                }
+                if(gamepad2.dpad_left && !gamepad2.dpad_up){
+                    turretstate = TURRETSTATE.right;
+                }
+                if(Math.abs(gamepad2.left_stick_x) > sens){
+                    turretstate = TURRETSTATE.manual;
+                }
+
+                switch (turretstate){
+                    case left:
+                        robot.autoTurret((Math.PI / 2.0) - turretAngleOffset);
+                        break;
+                    case right:
+                        robot.autoTurret((-Math.PI / 2.0) - turretAngleOffset);
+                        break;
+                    case forward:
+                        robot.autoTurret((0.0) - turretAngleOffset);
+                        break;
+                    case manual:
+                        robot.manualTurret(clipJoyInput(gamepad2.left_stick_x));
+                        break;
+                }
+            }
+
+
+            //wrist contol
+            {
+                if(gamepad2.dpad_up && !lastDU2){
+                    retract = !retract;
+                }
+                lastDU2 = gamepad2.dpad_up;
+
+                if(retract){
+                    robot.moveWrist(retractWristPos);
+                }
+                else{
+                    robot.moveWrist(lowerWristPos);
                 }
             }
 
@@ -234,7 +306,12 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
             {
                 telemetry.addData("maintain heading", maintainHeading);
                 telemetry.addData("SliderState", slideState);
+                telemetry.addData("turret state", turretstate);
+                telemetry.addData("TurretOffset?", offsetTurret);
                 telemetry.addData("Grabbing?", grabbing);
+                telemetry.addData("Retracting?", retract);
+                telemetry.addData("offsetAngle", turretAngleOffset);
+                telemetry.addData("reference angle", turretReferenceAngle);
 
                 robot.telemetry(telemetry);
             }
