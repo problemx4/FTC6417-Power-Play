@@ -48,6 +48,7 @@ public class LeftSideAuto extends LinearOpMode{
         TrajectorySequence startTrajectory = traj.startAuto(robot);
         TrajectorySequence dropTrajectory = traj.dropCone(robot);
         TrajectorySequence cycleTrajectory = traj.cycle(robot);
+        TrajectorySequence finalCycleTrajectory = traj.finalCycle(robot);
         TrajectorySequence firstParkPosition = traj.firstParkPositionBuilder(robot);
         TrajectorySequence secondParkPosition = traj.secondParkPositionBuilder(robot);
         TrajectorySequence thirdParkPosition = traj.thirdParkPositionBuilder(robot);
@@ -128,7 +129,10 @@ public class LeftSideAuto extends LinearOpMode{
                         }
                         else{
                             currentState = RightSideAuto.STATE.PARKING;
+                            robot.closeGrabber();
                             robot.autoSlide(ControlConstants.sliderBasePos);
+                            robot.moveWrist(ControlConstants.retractWristPos);
+                            robot.autoTurret(0);
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                     }
@@ -138,7 +142,10 @@ public class LeftSideAuto extends LinearOpMode{
                     if(!robot.isBusy()){
                         if(autoPath == RightSideAuto.AUTOPATH.PARKANDDROP || coneStack < 0){
                             currentState = RightSideAuto.STATE.PARKING;
+                            robot.closeGrabber();
                             robot.autoSlide(ControlConstants.sliderBasePos);
+                            robot.moveWrist(ControlConstants.retractWristPos);
+                            robot.autoTurret(0);
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                         else{
@@ -152,12 +159,22 @@ public class LeftSideAuto extends LinearOpMode{
                 case CYCLING:
                     if(!robot.isBusy()){
                         if(traj.isCyclePossible(runtime.seconds())){
-                            robot.autoSlide(ControlConstants.sliderStackedConePos * coneStack);
-                            robot.followTrajectorySequenceAsync(cycleTrajectory);
-                            coneStack--;
+                            if(coneStack == 0){
+                                robot.autoSlide(ControlConstants.sliderBasePos);
+                                robot.followTrajectorySequenceAsync(finalCycleTrajectory);
+                            }
+                            else{
+                                robot.autoSlide(ControlConstants.sliderStackedConePos * coneStack);
+                                robot.followTrajectorySequenceAsync(cycleTrajectory);
+                                coneStack--;
+                            }
                         }
                         else{
                             currentState = RightSideAuto.STATE.PARKING;
+                            robot.closeGrabber();
+                            robot.autoSlide(ControlConstants.sliderBasePos);
+                            robot.moveWrist(ControlConstants.retractWristPos);
+                            robot.autoTurret(0);
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                     }
@@ -180,6 +197,9 @@ public class LeftSideAuto extends LinearOpMode{
             telemetry.addData("Current state: ", currentState);
             telemetry.addData("Path:", autoPath);
             telemetry.addData("Elapsed Time: ", runtime.time());
+            telemetry.addData("conestack: ", coneStack);
+            telemetry.addData("is cycle possible: ", traj.isCyclePossible(runtime.seconds()));
+            telemetry.addData("busy: ", robot.isBusy());
             telemetry.update();
         }
     }

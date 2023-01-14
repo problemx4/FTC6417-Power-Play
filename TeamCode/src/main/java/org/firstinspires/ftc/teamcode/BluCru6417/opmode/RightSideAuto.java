@@ -25,8 +25,8 @@ public class RightSideAuto extends LinearOpMode{
         PARKANDDROP,
         PARKANDCYCLE,
     }
-    STATE currentState;
-    AUTOPATH autoPath = AUTOPATH.PARKANDCYCLE;
+    RightSideAuto.STATE currentState;
+    RightSideAuto.AUTOPATH autoPath = RightSideAuto.AUTOPATH.PARKANDCYCLE;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -47,6 +47,7 @@ public class RightSideAuto extends LinearOpMode{
         TrajectorySequence startTrajectory = traj.startAuto(robot);
         TrajectorySequence dropTrajectory = traj.dropCone(robot);
         TrajectorySequence cycleTrajectory = traj.cycle(robot);
+        TrajectorySequence finalCycleTrajectory = traj.finalCycle(robot);
         TrajectorySequence firstParkPosition = traj.firstParkPositionBuilder(robot);
         TrajectorySequence secondParkPosition = traj.secondParkPositionBuilder(robot);
         TrajectorySequence thirdParkPosition = traj.thirdParkPositionBuilder(robot);
@@ -81,13 +82,13 @@ public class RightSideAuto extends LinearOpMode{
             telemetry.update();
 
             if(gamepad1.a){
-                autoPath = AUTOPATH.PARKANDCYCLE;
+                autoPath = RightSideAuto.AUTOPATH.PARKANDCYCLE;
             }
             if(gamepad1.b){
-                autoPath = AUTOPATH.PARKANDDROP;
+                autoPath = RightSideAuto.AUTOPATH.PARKANDDROP;
             }
             if(gamepad1.x){
-                autoPath = AUTOPATH.PARK;
+                autoPath = RightSideAuto.AUTOPATH.PARK;
             }
         }
 
@@ -113,7 +114,7 @@ public class RightSideAuto extends LinearOpMode{
 
         //start off robot path
         runtime.reset();
-        currentState = STATE.START;
+        currentState = RightSideAuto.STATE.START;
         robot.followTrajectorySequenceAsync(startTrajectory);
 
         while(!isStopRequested() && opModeIsActive()){
@@ -121,12 +122,12 @@ public class RightSideAuto extends LinearOpMode{
                 case START:
                     //check if robot is done with START
                     if(!robot.isBusy()){
-                        if(autoPath == AUTOPATH.PARKANDCYCLE || autoPath == AUTOPATH.PARKANDDROP){
-                            currentState = STATE.DROPPING;
+                        if(autoPath == RightSideAuto.AUTOPATH.PARKANDCYCLE || autoPath == RightSideAuto.AUTOPATH.PARKANDDROP){
+                            currentState = RightSideAuto.STATE.DROPPING;
                             robot.followTrajectorySequenceAsync(dropTrajectory);
                         }
                         else{
-                            currentState = STATE.PARKING;
+                            currentState = RightSideAuto.STATE.PARKING;
                             robot.closeGrabber();
                             robot.autoSlide(ControlConstants.sliderBasePos);
                             robot.moveWrist(ControlConstants.retractWristPos);
@@ -138,8 +139,8 @@ public class RightSideAuto extends LinearOpMode{
                 case DROPPING:
                     //check if robot is done with DROPPING
                     if(!robot.isBusy()){
-                        if(autoPath == AUTOPATH.PARKANDDROP || coneStack < 0){
-                            currentState = STATE.PARKING;
+                        if(autoPath == RightSideAuto.AUTOPATH.PARKANDDROP || coneStack < 0){
+                            currentState = RightSideAuto.STATE.PARKING;
                             robot.closeGrabber();
                             robot.autoSlide(ControlConstants.sliderBasePos);
                             robot.moveWrist(ControlConstants.retractWristPos);
@@ -147,7 +148,7 @@ public class RightSideAuto extends LinearOpMode{
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                         else{
-                            currentState = STATE.CYCLING;
+                            currentState = RightSideAuto.STATE.CYCLING;
                             robot.autoSlide(ControlConstants.sliderStackedConePos * coneStack);
                             robot.followTrajectorySequenceAsync(cycleTrajectory);
                             coneStack--;
@@ -157,12 +158,18 @@ public class RightSideAuto extends LinearOpMode{
                 case CYCLING:
                     if(!robot.isBusy()){
                         if(traj.isCyclePossible(runtime.seconds())){
-                            robot.autoSlide(ControlConstants.sliderStackedConePos * coneStack);
-                            robot.followTrajectorySequenceAsync(cycleTrajectory);
-                            coneStack--;
+                            if(coneStack == 0){
+                                robot.autoSlide(ControlConstants.sliderBasePos);
+                                robot.followTrajectorySequenceAsync(finalCycleTrajectory);
+                            }
+                            else{
+                                robot.autoSlide(ControlConstants.sliderStackedConePos * coneStack);
+                                robot.followTrajectorySequenceAsync(cycleTrajectory);
+                                coneStack--;
+                            }
                         }
                         else{
-                            currentState = STATE.PARKING;
+                            currentState = RightSideAuto.STATE.PARKING;
                             robot.closeGrabber();
                             robot.autoSlide(ControlConstants.sliderBasePos);
                             robot.moveWrist(ControlConstants.retractWristPos);
@@ -174,7 +181,7 @@ public class RightSideAuto extends LinearOpMode{
                 case PARKING:
                     //check if robot is done parking
                     if(!robot.isBusy()){
-                        currentState = STATE.IDLE;
+                        currentState = RightSideAuto.STATE.IDLE;
                     }
                 case IDLE:
                     break;
@@ -189,6 +196,9 @@ public class RightSideAuto extends LinearOpMode{
             telemetry.addData("Current state: ", currentState);
             telemetry.addData("Path:", autoPath);
             telemetry.addData("Elapsed Time: ", runtime.time());
+            telemetry.addData("conestack: ", coneStack);
+            telemetry.addData("is cycle possible: ", traj.isCyclePossible(runtime.seconds()));
+            telemetry.addData("busy: ", robot.isBusy());
             telemetry.update();
         }
     }

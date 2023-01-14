@@ -12,6 +12,8 @@ public class Trajectories6417 implements ControlConstants{
     public Pose2d[] positions;
     public double[] angles;
     boolean isRight;
+    double rightGrabCorrection = 0;
+    double leftGrabCorrection = 1.5;
 
     public Trajectories6417(boolean right){
         isRight = right;
@@ -21,7 +23,7 @@ public class Trajectories6417 implements ControlConstants{
                     new Pose2d(36, -10, Math.toRadians(-90)),  //push pos                1
                     new Pose2d(48, -12, Math.toRadians(-90)), //central position        2
                     new Pose2d(54, -12, Math.toRadians(-90)), //ready to grab cone pos  3
-                    new Pose2d(57, -12, Math.toRadians(-90)), //grab cone pos           4
+                    new Pose2d(57.5 + rightGrabCorrection, -12, Math.toRadians(-90)), //grab cone pos           4
             };
             angles = new double[]{
                     Math.toRadians(0),
@@ -36,9 +38,9 @@ public class Trajectories6417 implements ControlConstants{
             positions = new Pose2d[]{
                     new Pose2d(-36, -65, Math.toRadians(-90)), //starting position       0
                     new Pose2d(-36, -10, Math.toRadians(-90)), //push pos                1
-                    new Pose2d(-58, -12, Math.toRadians(-90)), //central position        2
+                    new Pose2d(-48, -12, Math.toRadians(-90)), //central position        2
                     new Pose2d(-54, -12, Math.toRadians(-90)), //ready to grab cone pos  3
-                    new Pose2d(-57, -12, Math.toRadians(-90)), //grab cone pos           4
+                    new Pose2d(-57.5 - leftGrabCorrection, -12, Math.toRadians(-90)), //grab cone pos           4
             };
             angles = new double[]{
                     Math.toRadians(180),
@@ -52,7 +54,7 @@ public class Trajectories6417 implements ControlConstants{
     }
 
     TrajectoryVelocityConstraint normalVelocity = SampleMecanumDrive.getVelocityConstraint(40, Math.toRadians(180), 12.3);
-    TrajectoryVelocityConstraint slowVelocity = SampleMecanumDrive.getVelocityConstraint(10, Math.toRadians(90), 12.3);
+    TrajectoryVelocityConstraint slowVelocity = SampleMecanumDrive.getVelocityConstraint(12, Math.toRadians(90), 12.3);
 
     public TrajectorySequence startAuto(Hardware6417 robot){
         return robot.trajectorySequenceBuilder(positions[0])
@@ -76,11 +78,11 @@ public class Trajectories6417 implements ControlConstants{
                     //lower wrist
                     robot.moveWrist(lowerWristPos);
                 })
-                .UNSTABLE_addTemporalMarkerOffset(0.5,() -> {
+                .UNSTABLE_addTemporalMarkerOffset(0.1,() -> {
                     //drop cone
                     robot.openGrabber();
                 })
-                .waitSeconds(1.0)
+                .waitSeconds(0.2)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //close grabber
                     robot.closeGrabber();
@@ -106,7 +108,7 @@ public class Trajectories6417 implements ControlConstants{
                     //grab cone
                     robot.closeGrabber();
                 })
-                .waitSeconds(0.3)
+                .waitSeconds(0.1)
                 //RETURNING TO DROP
                 .setVelConstraint(normalVelocity)
                 .setTangent(angles[2])
@@ -128,11 +130,64 @@ public class Trajectories6417 implements ControlConstants{
                     //lower wrist
                     robot.moveWrist(lowerWristPos);
                 })
-                .UNSTABLE_addTemporalMarkerOffset(0.3,() -> {
+                .UNSTABLE_addTemporalMarkerOffset(0.1,() -> {
                     //drop cone
                     robot.openGrabber();
                 })
-                .waitSeconds(0.5)
+                .waitSeconds(0.2)
+                .UNSTABLE_addTemporalMarkerOffset(0,() -> {
+                    //close grabber
+                    robot.closeGrabber();
+                    robot.autoTurret(angles[4]);
+                })
+                .waitSeconds(0.2)
+                .build();
+    }
+
+    public TrajectorySequence finalCycle(Hardware6417 robot){
+        return robot.trajectorySequenceBuilder(positions[2])
+                //GRABBING CONE
+                .setVelConstraint(slowVelocity)
+                .setTangent(angles[0])
+                .UNSTABLE_addTemporalMarkerOffset(0,() -> {
+                    //lower slider (maybe not necessary and to be used outside in auto class)
+                    //move turret to grab
+                    robot.autoTurret(angles[4]);
+                    robot.moveWrist(ControlConstants.lowerWristPos - 0.01);
+                    robot.openGrabber();
+                })
+                .splineToSplineHeading(positions[4], angles[0])
+                .UNSTABLE_addTemporalMarkerOffset(0,() -> {
+                    //grab cone
+                    robot.closeGrabber();
+                })
+                .waitSeconds(0.1)
+                //RETURNING TO DROP
+                .setVelConstraint(normalVelocity)
+                .setTangent(angles[2])
+                .UNSTABLE_addTemporalMarkerOffset(0,() -> {
+                    //raise slider to drop cone
+                    robot.autoSlide(sliderLowPos + 200);
+                    //retract wrist
+                    //robot.moveWrist(retractWristPos);
+                })
+                .UNSTABLE_addTemporalMarkerOffset(0.4,() -> {
+                    //move turret to drop cone
+                    robot.autoTurret(0);
+                })
+                .waitSeconds(0.4)
+                .splineToSplineHeading(positions[2], angles[2])
+                //DROPPING CONE
+                .setVelConstraint(slowVelocity)
+                .UNSTABLE_addTemporalMarkerOffset(0,() -> {
+                    //lower wrist
+                    robot.moveWrist(lowerWristPos);
+                })
+                .UNSTABLE_addTemporalMarkerOffset(0.1,() -> {
+                    //drop cone
+                    robot.openGrabber();
+                })
+                .waitSeconds(0.2)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //close grabber
                     robot.closeGrabber();
@@ -150,7 +205,7 @@ public class Trajectories6417 implements ControlConstants{
         }
         else{
             return robot.trajectorySequenceBuilder(positions[2])
-                    .strafeLeft(36)
+                    .strafeRight(12)
                     .build();
         }
     }
@@ -176,15 +231,15 @@ public class Trajectories6417 implements ControlConstants{
         }
         else{
             return robot.trajectorySequenceBuilder(positions[2])
-                    .strafeRight(12)
+                    .strafeLeft(36)
                     .build();
         }
     }
 
 
     public boolean isCyclePossible(double elapsedTime){
-        double cycleTime = 5;
-        double parkTime = 3;
+        double cycleTime = 4;
+        double parkTime = 1;
         double autoTime = 30;
 
         //check if the amount of time left is more than the time it takes to cycle
