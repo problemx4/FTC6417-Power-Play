@@ -21,8 +21,8 @@ public interface ControlConstants {
     double turretMaxPos             = 1.0;
     double turretMinPos             = 0.0;
 
-    double retractWristPos          = 0.5;
-    double lowerWristPos            = 0.05;
+    double retractWristPos          = 0.45;
+    double lowerWristPos            = 0.06;
 
     double turretForwardPos         = 0.464444;
     double turretLeftPos            = 0.81;
