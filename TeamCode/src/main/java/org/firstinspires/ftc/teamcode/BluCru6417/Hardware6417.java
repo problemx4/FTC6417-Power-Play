@@ -43,12 +43,17 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     public Servo grabber        = null;
     public Servo wrist          = null;
 
+    public Servo parallelRetract = null;
+
     //angle variables
     double lastAngle;
-    double globalAngle;
+    public double globalAngle;
+
+    //power variables
+    double autoSlidePower;
 
     //camera variables
-    double[] subMatCenter = {0.666,0.75}; //NOT coordinates, these values are the % across the screen,.5 being the exact center, x,y from top left
+    double[] subMatCenter = {0.35,0.5}; //NOT coordinates, these values are the % across the screen,.5 being the exact center, x,y from top left
     int subMatWidth = 80;
     int subMatHeight = 100;
 
@@ -63,9 +68,12 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
     /* Constructor */
     public Hardware6417(HardwareMap ahwMap){
+        //initialize drive train
         super(ahwMap);
+        //initialize intake
         initIntake(ahwMap);
-
+        //initialize odo pod retractor
+        parallelRetract = ahwMap.get(Servo.class, "ParallelRetractor");
         // Save reference to Hardware map
         hwMap       = ahwMap;
     }
@@ -90,6 +98,10 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
         //reset sliders
         resetSliders();
+
+        //init autoSlide Variable
+
+        autoSlidePower = highSlidePower;
     }
 
     public void initCamera(HardwareMap ahwMap, Telemetry tele){
@@ -136,6 +148,9 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
      * grab(pos) - sets grabber servo
      * openGrabber() - opens grabber
      * closeGrabber() - closes grabber
+     *
+     * dropOdo() - drops odo
+     * retractOdo() - retracts odo
      *
      * stop() - stops all motors
      */
@@ -266,6 +281,10 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         //lololol
     }
 
+    public void setAutoSlidePower(double power){
+        autoSlidePower = power;
+    }
+
 
 
     //turret code
@@ -275,8 +294,10 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         return (quarterDistance * ratio) + turretForwardPos;
     }
 
-    public void autoTurret(double angle){
-        turret.setPosition(Range.clip(turretAngleToPower(angle),turretRightPos,turretLeftPos));
+    public void autoTurret(double pos){
+        if(pos != turret.getPosition()){
+            turret.setPosition(pos);
+        }
     }
 
     public void manualTurret(double delta){
@@ -288,7 +309,9 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
     //wrist control
     public void moveWrist(double pos){
-        wrist.setPosition(pos);
+        if(pos != wrist.getPosition()){
+            wrist.setPosition(pos);
+        }
     }
 
     public void manualMoveWrist(double delta){
@@ -310,7 +333,13 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         grab(grabberClosePos);
     }
 
+    public void dropOdo(){
+        parallelRetract.setPosition(odoDropPos);
+    }
 
+    public void retractOdo(){
+        parallelRetract.setPosition(odoRetractPos);
+    }
 
     public void stop(){
         setWeightedDrivePower(new Pose2d(0,0,0));

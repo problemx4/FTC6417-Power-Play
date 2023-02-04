@@ -60,6 +60,7 @@ public class SignalDetectorPipeline extends OpenCvPipeline{
             position = 2;
         }
 
+        subMat.release();
         //copy.release();
         return copy;
     }

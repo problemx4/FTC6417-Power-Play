@@ -36,7 +36,7 @@ public class RightSideAuto extends LinearOpMode{
 
         //start robot
         robot.closeGrabber();
-        robot.autoTurret(0);
+        robot.dropOdo();
         sleep(500);
 
         //build trajectory sequences
@@ -72,7 +72,7 @@ public class RightSideAuto extends LinearOpMode{
         telemetry.addData("Mode", "calibrated!");
         telemetry.update();
 
-        while (opModeInInit()){
+        while (!isStopRequested() && opModeInInit()){
             position = robot.pipeline.position;
             telemetry.addData("Position", position);
             telemetry.addData("Red total: ", robot.pipeline.redTotal);
@@ -131,7 +131,7 @@ public class RightSideAuto extends LinearOpMode{
                             robot.closeGrabber();
                             robot.autoSlide(ControlConstants.sliderBasePos);
                             robot.moveWrist(ControlConstants.retractWristPos);
-                            robot.autoTurret(0);
+                            robot.autoTurret(ControlConstants.turretForwardPos);
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                     }
@@ -144,7 +144,7 @@ public class RightSideAuto extends LinearOpMode{
                             robot.closeGrabber();
                             robot.autoSlide(ControlConstants.sliderBasePos);
                             robot.moveWrist(ControlConstants.retractWristPos);
-                            robot.autoTurret(0);
+                            robot.autoTurret(ControlConstants.turretForwardPos);
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                         else{
@@ -173,7 +173,7 @@ public class RightSideAuto extends LinearOpMode{
                             robot.closeGrabber();
                             robot.autoSlide(ControlConstants.sliderBasePos);
                             robot.moveWrist(ControlConstants.retractWristPos);
-                            robot.autoTurret(0);
+                            robot.autoTurret(ControlConstants.turretForwardPos);
                             robot.followTrajectorySequenceAsync(parkTrajectory);
                         }
                     }

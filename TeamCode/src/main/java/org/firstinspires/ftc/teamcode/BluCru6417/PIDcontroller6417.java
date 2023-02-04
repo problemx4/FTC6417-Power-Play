@@ -9,8 +9,8 @@ public class PIDcontroller6417 {
 
     public double target = 0;
 
-    public double errorTolerance = 5;
-    public double derivativeTolerance = 5;
+    public double errorTolerance = 0;
+    public double derivativeTolerance = 0;
 
     public double error;
     public double integralSum;
@@ -50,14 +50,10 @@ public class PIDcontroller6417 {
     }
 
     public boolean isBusy(){
-        return !(error < errorTolerance && derivative < derivativeTolerance);
+        return Math.abs(error) > errorTolerance || Math.abs(derivative) > derivativeTolerance;
     }
 
     public double calculate(double current){
-        if(!isBusy()){
-            return 0.0;
-        }
-
         //get the time since last call
         double timeDelta = elapsedTime.seconds();
 
@@ -74,6 +70,10 @@ public class PIDcontroller6417 {
 
         elapsedTime.reset();
 
+
+        if(!isBusy()){
+            return 0.0;
+        }
         return (error * kP) + (integralSum * kI) + (derivative * kD);
     }
 }

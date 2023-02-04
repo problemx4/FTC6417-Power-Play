@@ -25,15 +25,11 @@ public class MeepMeepTesting {
                 .setConstraints(36, 30, Math.toRadians(120), Math.toRadians(180), 12.5)
                 .setColorScheme(new ColorSchemeRedDark())
                 .followTrajectorySequence(drive ->
-                        drive.trajectorySequenceBuilder(new Pose2d(36, -65, Math.toRadians(-90)))
-                                .setVelConstraint(normalVelocity)
+                        drive.trajectorySequenceBuilder(new Pose2d(36, -63.5, Math.toRadians(-90)))
+                                .setTangent(0)
+                                .splineToSplineHeading(new Pose2d(60, -63.5, Math.toRadians(-90)), 0)
                                 .setTangent(Math.toRadians(90))
-                                .splineTo(new Vector2d(36, -6), Math.toRadians(90))
-                                .setTangent(-90)
-                                .UNSTABLE_addTemporalMarkerOffset(0, () -> {
-                                    //raise slider and move arm
-                                })
-                                .splineToLinearHeading(new Pose2d(24, -12, Math.toRadians(-90)), Math.toRadians(180))
+                                .splineToSplineHeading(new Pose2d(60, -18, Math.toRadians(-64)), Math.toRadians(90))
                                 .build()
                 );
 

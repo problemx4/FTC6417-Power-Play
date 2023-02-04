@@ -10,7 +10,6 @@ import java.util.List;
 
 @TeleOp (name = "TestMotor", group = "TeleOp")
 public class MotorTest extends LinearOpMode {
-    DcMotorEx testMotor1, testMotor2, testMotor3, testMotor4;
     private List<DcMotorEx> testMotors;
     ElapsedTime runtime;
 
@@ -44,11 +43,9 @@ public class MotorTest extends LinearOpMode {
                 motor.setPower(motorControl);
             }
 
-            /*
             for(DcMotorEx motor : testMotors){
                 telemetry.addData(motor.getDeviceName(), motor.getCurrentPosition());
             }
-            */
 
             telemetry.addData("Time", runtime.time());
             telemetry.update();
