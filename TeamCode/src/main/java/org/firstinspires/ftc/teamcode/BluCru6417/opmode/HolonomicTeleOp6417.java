@@ -56,9 +56,14 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         manual,
     }
 
+    enum WRISTSTATE{
+        automatic,
+        manual,
+    }
+
     public static double kP = 1.0;
     public static double kI = 0.0;
-    public static double kD = 0.05;
+    public static double kD = 0.3;
 
     @Override
     public void runOpMode() {
@@ -67,7 +72,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
 
         //initialize Turn PID controller with PID constants
         PIDcontroller6417 turnPID = new PIDcontroller6417(kP,kI,kD);
-        turnPID.setTolerances(0, 0);
+        turnPID.setTolerances(Math.toRadians(5), Math.toRadians(5));
 
         telemetry.addData("Status", "Initialized");
 
@@ -126,12 +131,16 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
 
         TURRETSTATE turretstate = TURRETSTATE.forward;
 
+        WRISTSTATE wriststate = WRISTSTATE.automatic;
+
         //Control loop
         while(opModeIsActive()){
             //safety for switching controllers
             if(gamepad2.start || gamepad1.start){
                 continue;
             }
+
+            double heading = robot.getCumulativeAngle();
 
             //driving
             {
@@ -149,31 +158,17 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 else{
                     currentDrivePower = maxDrivePower;
                 }
-                if(gamepad1.a || gamepad1.b || gamepad1.x || gamepad1.y){
+                if(gamepad1.a){
                     if(!lastF1){
                         turnPID.resetIntegral();
-                        turnPID.resetTimer();
-                        //turnPID.setTarget(robot.getCumulativeAngle());
-                        if(gamepad1.a){
-                            turnPID.setTarget(Math.PI);
-                        }
-                        if(gamepad1.b){
-                            turnPID.setTarget((3.0 * Math.PI) / 2.0);
-                        }
-                        if(gamepad1.x){
-                            turnPID.setTarget(Math.PI / 2.0);
-                        }
-                        if(gamepad1.y){
-                            //problems occur if going over 360 degrees
-                            turnPID.setTarget(0);
-                        }
+                        turnPID.setTarget(Math.PI);
                     }
-                    rotateControl = -Range.clip(turnPID.calculate(robot.getCumulativeAngle() % (2 * Math.PI)),-1.5,1.5);
+                    rotateControl = -Range.clip(turnPID.calculate(heading % (2 * Math.PI)),-1.5,1.5);
                 }
-                lastF1 = gamepad1.a || gamepad1.b || gamepad1.x || gamepad1.y;
+                lastF1 = gamepad1.a;
 
                 //move wheels
-                robot.rrHolonomicDrive(currentDrivePower,horizontalControl,verticalControl,rotateControl,maintainHeading);
+                robot.rrHolonomicDrive(currentDrivePower,horizontalControl,verticalControl,rotateControl,maintainHeading, heading);
 
                 //toggle maintain heading
                 if(gamepad1.right_bumper && !lastRB1){
@@ -244,6 +239,10 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                         if(slideTimer.seconds() > slideDownDelay){
                             robot.autoSlide(slidePos);
                         }
+                        if(slideTimer.seconds() > slideStallDelay){
+                            slideState = SLIDESTATE.manualSlide;
+                            robot.slider.setTargetPosition(-1);
+                        }
                         break;
                     case autoSlide:
                         robot.autoSlide(Range.clip(slidePos - dropCone, sliderMinPos, sliderMaxPos));
@@ -313,14 +312,26 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
             {
                 if(gamepad2.dpad_up && !lastDU2){
                     retract = !retract;
+                    wriststate = WRISTSTATE.automatic;
                 }
                 lastDU2 = gamepad2.dpad_up;
 
-                if(retract){
-                    robot.moveWrist(retractWristPos);
+                if(Math.abs(gamepad2.left_stick_y) > sens){
+                    retract = false;
+                    wriststate = WRISTSTATE.manual;
                 }
-                else{
-                    robot.moveWrist(lowerWristPos);
+
+                switch(wriststate) {
+                    case manual:
+                        robot.manualMoveWrist(clipJoyInput(gamepad2.left_stick_y));
+                        break;
+                    case automatic:
+                        if (retract) {
+                            robot.moveWrist(retractWristPos);
+                        } else {
+                            robot.moveWrist(lowerWristPos);
+                        }
+                        break;
                 }
             }
 
@@ -357,6 +368,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
 
             //telemetry
             {
+
                 telemetry.addData("maintain heading", maintainHeading);
                 telemetry.addData("SliderState", slideState);
                 telemetry.addData("turret state", turretstate);
@@ -365,6 +377,8 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 telemetry.addData("turn reference angle", Math.toDegrees(turnPID.target));
                 telemetry.addData("pid error", turnPID.error);
                 telemetry.addData("rotate control", rotateControl);
+                telemetry.addData("Slide Power", robot.autoSlidePower);
+                telemetry.addData("Cumulative Angle", Math.toDegrees(heading));
 
                 robot.telemetry(telemetry);
             }

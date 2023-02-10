@@ -30,6 +30,7 @@ public class PIDtuner6417 extends LinearOpMode {
     public static double kP = 1.61;
     public static double kI = 0;
     public static double kD = 0.01;
+    public static double tunerA = 0.999;
 
     public static double distance = Math.PI / 10.0;
 
@@ -65,6 +66,7 @@ public class PIDtuner6417 extends LinearOpMode {
 
         while(opModeIsActive()){
             controller.setCoefficients(kP,kI,kD);
+            controller.a = tunerA;
 
             drive.setWeightedDrivePower(new Pose2d(0,0, controller.calculate(getCurrent())));
 

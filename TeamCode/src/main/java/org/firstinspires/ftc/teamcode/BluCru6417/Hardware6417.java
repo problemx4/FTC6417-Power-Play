@@ -38,6 +38,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
     //TeleOp variables
     public DcMotorEx slider     = null;
+    public DcMotorEx auxSlider  = null;
 
     public Servo turret         = null;
     public Servo grabber        = null;
@@ -50,10 +51,10 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     public double globalAngle;
 
     //power variables
-    double autoSlidePower;
+    public double autoSlidePower;
 
     //camera variables
-    double[] subMatCenter = {0.35,0.5}; //NOT coordinates, these values are the % across the screen,.5 being the exact center, x,y from top left
+    double[] subMatCenter = {0.32,0.5}; //NOT coordinates, these values are the % across the screen,.5 being the exact center, x,y from top left
     int subMatWidth = 80;
     int subMatHeight = 100;
 
@@ -82,6 +83,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     public void initIntake(HardwareMap ahwMap){
         // Define and initialize motor and servo
         slider  = ahwMap.get(DcMotorEx.class, "Slider");
+        auxSlider = ahwMap.get(DcMotorEx.class, "AuxSlider");
 
         turret      = ahwMap.get(Servo.class, "Turret");
         grabber     = ahwMap.get(Servo.class, "Grabber");
@@ -89,12 +91,15 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
         //set direction of motors accordingly
         slider.setDirection(DcMotorSimple.Direction.REVERSE);
+        auxSlider.setDirection(DcMotorSimple.Direction.REVERSE);
 
         //set all motors to zero power
         slider.setPower(0);
+        auxSlider.setPower(0);
 
         //set brake behavior
-        slider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        slider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        auxSlider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         //reset sliders
         resetSliders();
@@ -162,25 +167,24 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         tele.addData("right front Pos", getWheelTicks(3));
 
         tele.addData("Slider pos", slider.getCurrentPosition());
+        tele.addData("auxSlider pos", auxSlider.getCurrentPosition());
 
         tele.addData("Turret position", turret.getPosition());
         tele.addData("Wrist position", wrist.getPosition());
 
         tele.addData("Cumulative Angle", Math.toDegrees(getCumulativeAngle()));
-        tele.addData("RR Angle", Math.toDegrees(getRawExternalHeading()));
 
         tele.update();
     }
 
 
 
-    public void rrHolonomicDrive(double power, double horizontal, double vertical, double rotation, boolean maintainHeading){
+    public void rrHolonomicDrive(double power, double horizontal, double vertical, double rotation, boolean maintainHeading, double heading){
         Vector2d input = new Vector2d(horizontal, vertical);
 
         input = input.rotated(Math.toRadians(-90));
 
         if(maintainHeading){
-            double heading = getCumulativeAngle();
             input = input.rotated(-heading);
         }
 
@@ -228,32 +232,39 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     public void manualSlide(double power, boolean limiter){
         if(slider.getMode() != DcMotor.RunMode.RUN_USING_ENCODER){
             slider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            auxSlider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
 
         //check if slider is going beyond limits
         if(limiter){
             if((slider.getCurrentPosition() > sliderMaxPos ) && power > 0){
                 slider.setPower(0);
+                auxSlider.setPower(0);
                 return;
             }
             if((slider.getCurrentPosition() < sliderMinPos ) && power < 0){
                 slider.setPower(0);
+                auxSlider.setPower(0);
                 return;
             }
         }
 
         slider.setPower(power);
+        auxSlider.setPower(power);
     }
 
     public void autoSlide(int position){
         if(slider.getTargetPosition() != position){
             slider.setTargetPosition(position);
+            auxSlider.setTargetPosition(position);
 
             if(slider.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
                 slider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                auxSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
 
             slider.setPower(autoSlidePower);
+            auxSlider.setPower(autoSlidePower);
         }
     }
 
@@ -261,23 +272,33 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         int position = (slider.getCurrentPosition()) + clearDelta;
 
         slider.setTargetPosition(position);
+        auxSlider.setTargetPosition(position);
 
         if(slider.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
             slider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            auxSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         }
 
         slider.setPower(clearSlidePower);
+        auxSlider.setPower(clearSlidePower);
     }
 
     public void resetSliders(){
         //reset motor encoders
         slider.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        auxSlider.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         //use motor encoders
         slider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        auxSlider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        //set power to zero
+        slider.setPower(0);
+        auxSlider.setPower(0);
 
         //set motors to run to zero to avoid problems
         slider.setTargetPosition(0);
+        auxSlider.setTargetPosition(0);
         //lololol
     }
 

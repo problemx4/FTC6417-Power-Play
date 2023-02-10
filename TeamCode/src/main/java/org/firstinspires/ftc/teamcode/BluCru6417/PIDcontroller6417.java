@@ -8,6 +8,11 @@ public class PIDcontroller6417 {
     public double kD = 0;
 
     public double target = 0;
+    public double lastTarget = target;
+
+    public double a = 0.999; // a can be anything from 0 < a < 1
+    public double previousFilterEstimate = 0;
+    public double currentFilterEstimate = 0;
 
     public double errorTolerance = 0;
     public double derivativeTolerance = 0;
@@ -34,6 +39,7 @@ public class PIDcontroller6417 {
     public void setTarget(double tar){
         target = tar;
         elapsedTime.reset();
+        resetIntegral();
     }
 
     public void setTolerances(double errorT, double derivativeT){
@@ -60,16 +66,25 @@ public class PIDcontroller6417 {
         //calculate error
         error = target - current;
 
+        //derivative with low pass filter
+        // filter out high frequency noise to increase derivative performance
+        currentFilterEstimate = (a * previousFilterEstimate) + (1-a) * (error - lastError);
+        previousFilterEstimate = currentFilterEstimate;
+
         //calculate derivative
-        derivative = (error - lastError) / timeDelta;
+        derivative = currentFilterEstimate / timeDelta;
 
         //calculate integral
         integralSum += error * timeDelta;
 
+        if(lastTarget != target){
+            resetIntegral();
+        }
+
         lastError = error;
+        lastTarget = target;
 
-        elapsedTime.reset();
-
+        resetTimer();
 
         if(!isBusy()){
             return 0.0;

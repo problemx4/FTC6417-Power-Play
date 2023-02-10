@@ -12,11 +12,11 @@ public class Trajectories6417 implements ControlConstants{
     public Pose2d[] positions;
     public double[] angles;
     boolean isRight;
-    double rightGrabCorrection = 0;
-    double leftGrabCorrection = 0;
-    double rightCenterCorrection = 0;
-    double leftCenterCorrection = 0;
-    double rightForwardCorrection = 0;
+    double rightGrabCorrection = -2.25;
+    double leftGrabCorrection = 1.0;
+    double rightCenterCorrection = -1.25;//Lower this by like half an inch TEST THIS ON HIGH BATTERY
+    double leftCenterCorrection = 3;
+    double rightForwardCorrection = 0.5;
     double leftForwardCorrection = 0;
 
     public Trajectories6417(boolean right){
@@ -26,7 +26,7 @@ public class Trajectories6417 implements ControlConstants{
                     new Pose2d(36, -63.5 - rightForwardCorrection, Math.toRadians(-90)), //starting position       0
                     new Pose2d(36, -12, Math.toRadians(-90)),  //push pos                1
                     new Pose2d(48 + rightCenterCorrection, -12, Math.toRadians(-90)), //central position        2
-                    new Pose2d(54, -12, Math.toRadians(-90)), //ready to grab cone pos  3
+                    new Pose2d(45, -12, Math.toRadians(-90)), //first one always overshoots for some reason... good solution?
                     new Pose2d(58 + rightGrabCorrection, -12, Math.toRadians(-90)), //grab cone pos           4
             };
             angles = new double[]{
@@ -43,7 +43,7 @@ public class Trajectories6417 implements ControlConstants{
                     new Pose2d(-36, -63.5 - leftForwardCorrection, Math.toRadians(-90)), //starting position       0
                     new Pose2d(-36, -12, Math.toRadians(-90)), //push pos                1
                     new Pose2d(-48 - leftCenterCorrection, -12, Math.toRadians(-90)), //central position        2
-                    new Pose2d(-54, -12, Math.toRadians(-90)), //ready to grab cone pos  3
+                    new Pose2d(-50, -12, Math.toRadians(-90)), //first one always overshoots for some reason... good solution?
                     new Pose2d(-58 - leftGrabCorrection, -12, Math.toRadians(-90)), //grab cone pos           4
             };
             angles = new double[]{
@@ -57,12 +57,13 @@ public class Trajectories6417 implements ControlConstants{
         }
     }
 
-    TrajectoryVelocityConstraint normalVelocity = SampleMecanumDrive.getVelocityConstraint(40, Math.toRadians(180), 12.3);
-    TrajectoryVelocityConstraint slowVelocity = SampleMecanumDrive.getVelocityConstraint(12, Math.toRadians(90), 12.3);
+    TrajectoryVelocityConstraint normalVelocity = SampleMecanumDrive.getVelocityConstraint(20, Math.toRadians(90), 12.42);
+    TrajectoryVelocityConstraint slowVelocity = SampleMecanumDrive.getVelocityConstraint(12, Math.toRadians(90), 12.42);
+    TrajectoryVelocityConstraint startVelocity = SampleMecanumDrive.getVelocityConstraint(20, Math.toRadians(90), 12.42);
 
     public TrajectorySequence startAuto(Hardware6417 robot){
         return robot.trajectorySequenceBuilder(positions[0])
-                .setVelConstraint(normalVelocity)
+                .setVelConstraint(startVelocity)
                 .setTangent(angles[1])
                 .splineToSplineHeading(positions[1], angles[1])
                 .setTangent(angles[5])
@@ -70,22 +71,23 @@ public class Trajectories6417 implements ControlConstants{
                     robot.autoSlide(sliderLowPos);
                     robot.autoTurret(turretForwardPos);
                 })
-                .setVelConstraint(slowVelocity)
-                .splineToLinearHeading(positions[2], angles[2])
+                .setVelConstraint(startVelocity)
+                .splineToLinearHeading(positions[3], angles[2])
                 .build();
     }
 
     public TrajectorySequence dropCone(Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(positions[2])
+        return robot.trajectorySequenceBuilder(positions[3])
                 .setVelConstraint(slowVelocity)
-                .waitSeconds(0.001)
+                .forward(0.001)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //lower wrist
                     robot.moveWrist(lowerWristPos);
                 })
-                .UNSTABLE_addTemporalMarkerOffset(0.1,() -> {
+                .UNSTABLE_addTemporalMarkerOffset(0.15,() -> {
                     //drop cone
                     robot.openGrabber();
+                    robot.autoSlide(sliderLowPos - 50); //MAYBE REMOVE THIS
                 })
                 .waitSeconds(0.3)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
@@ -93,14 +95,14 @@ public class Trajectories6417 implements ControlConstants{
                     robot.closeGrabber();
                     robot.autoTurret(angles[4]);
                 })
-                .waitSeconds(0.001)
+                .back(0.001)
                 .build();
     }
 
     public TrajectorySequence cycle(Hardware6417 robot){
         return robot.trajectorySequenceBuilder(positions[2])
                 //GRABBING CONE
-                .setVelConstraint(slowVelocity)
+                .setVelConstraint(startVelocity)
                 .setTangent(angles[0])
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //lower slider (maybe not necessary and to be used outside in auto class)
@@ -123,14 +125,14 @@ public class Trajectories6417 implements ControlConstants{
                     //retract wrist
                     //robot.moveWrist(retractWristPos);
                 })
-                .UNSTABLE_addTemporalMarkerOffset(0.2,() -> {
+                .UNSTABLE_addTemporalMarkerOffset(0.06,() -> {
                     //move turret to drop cone
                     robot.autoTurret(turretForwardPos);
                 })
                 .waitSeconds(0.15)
                 .splineToSplineHeading(positions[2], angles[2])
                 //DROPPING CONE
-                .setVelConstraint(slowVelocity)
+                .setVelConstraint(startVelocity)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //lower wrist
                     robot.moveWrist(lowerWristPos);
@@ -138,6 +140,7 @@ public class Trajectories6417 implements ControlConstants{
                 .UNSTABLE_addTemporalMarkerOffset(0.1,() -> {
                     //drop cone
                     robot.openGrabber();
+                    robot.autoSlide(sliderLowPos - 50); //MAYBE REMOVE THIS
                 })
                 .waitSeconds(0.3)
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
@@ -158,7 +161,7 @@ public class Trajectories6417 implements ControlConstants{
                     //lower slider (maybe not necessary and to be used outside in auto class)
                     //move turret to grab
                     robot.autoTurret(angles[4]);
-                    robot.moveWrist(ControlConstants.lowerWristPos - 0.01);
+                    robot.moveWrist(lowerWristPos);
                     robot.openGrabber();
                 })
                 .splineToSplineHeading(positions[4], angles[0])
@@ -172,7 +175,7 @@ public class Trajectories6417 implements ControlConstants{
                 .setTangent(angles[2])
                 .UNSTABLE_addTemporalMarkerOffset(0,() -> {
                     //raise slider to drop cone
-                    robot.autoSlide(sliderLowPos + 200);
+                    robot.autoSlide(sliderLowPos);
                     //retract wrist
                     //robot.moveWrist(retractWristPos);
                 })
@@ -192,13 +195,11 @@ public class Trajectories6417 implements ControlConstants{
                     //drop cone
                     robot.openGrabber();
                 })
-                .waitSeconds(0.3)
-                .UNSTABLE_addTemporalMarkerOffset(0,() -> {
-                    //close grabber
-                    robot.closeGrabber();
-                    robot.autoTurret(angles[4]);
+                .UNSTABLE_addTemporalMarkerOffset(0.3,() -> {
+                    //drop cone
+                    robot.moveWrist(retractWristPos);
                 })
-                .waitSeconds(0.2)
+                .waitSeconds(0.5)
                 .build();
     }
 
@@ -239,16 +240,6 @@ public class Trajectories6417 implements ControlConstants{
                     .strafeLeft(36)
                     .build();
         }
-    }
-
-    public TrajectorySequence eddieStart (Hardware6417 robot){
-        return robot.trajectorySequenceBuilder(new Pose2d(36, -63.5, Math.toRadians(-90)))
-                .setTangent(0)
-                .splineToSplineHeading(new Pose2d(60, -63.5, Math.toRadians(-90)), 0)
-                .setTangent(Math.toRadians(90))
-                .splineToSplineHeading(new Pose2d(60, -18, Math.toRadians(-90)), Math.toRadians(90))
-                .turn(Math.toRadians(26))
-                .build();
     }
 
 
