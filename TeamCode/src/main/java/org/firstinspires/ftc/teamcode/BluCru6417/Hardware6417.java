@@ -98,8 +98,8 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         auxSlider.setPower(0);
 
         //set brake behavior
-        slider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        auxSlider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        slider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        auxSlider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         //reset sliders
         resetSliders();
