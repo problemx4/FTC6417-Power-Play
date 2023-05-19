@@ -11,44 +11,55 @@ public interface ControlConstants {
     double manualServoDelta         = .01;
 
     /* servo variables */
-    double maxDrivePower            = 0.75;
-    double maxSlowerDrivePower      = 0.3;
+    double maxDrivePower            = 0.8;
+    double maxSlowerDrivePower      = 0.15;
 
-    double highSlidePower           = 0.8;
-    double medSlidePower            = 0.8;
-    double lowSlidePower            = 0.8;
-    double baseSlidePower           = 0.7;
+    double highSlidePower           = 1.0;
+    double medSlidePower            = 1.0;
+    double lowSlidePower            = 1.0;
+    double baseSlidePower           = 0.5;
     double maxManualSliderPower     = 0.7;
     double clearSlidePower          = 0.8;
-    double dropConePower            = 0.5;
+    double dropConePower            = 0.8;
 
     double grabberClosePos          = 1.0;
-    double grabberOpenPos           = 0.96;
+    double grabberOpenPos           = 0.8;
 
-    double retractWristPos          = 0.95;
-    double lowerWristPos            = 0.5;
+    double retractWristPos          = 0.07;
+    double dropWristPos             = 1.0;
+    double lowerWristPos            = 0.78;
+    double raiseWristPos            = 0.7;
 
-    double turretForwardPos         = 0.4866666;
-    double turretLeftPos            = 0.16;
-    double turretRightPos           = 0.8322222;
+    double twisterMinPos            = 0.485;
+    double twisterMidPos            = 0.511666;
+    double twisterMaxPos            = 0.542777;
 
-    double turretMaxPos             = turretRightPos;
-    double turretMinPos             = turretLeftPos;
+    double autoTwistSens            = 0.2;
 
-    double odoRetractPos            = 0.0;
-    double odoDropPos               = 0.3;
+    double turretForwardPos         = 0.5;
+    double turretLeftPos            = 0.96;
+    double turretRightPos           = 0.04;
+
+    double turretMaxPos             = turretLeftPos;
+    double turretMinPos             = turretRightPos;
+
+    double leftOdoRetractPos            = 0.0;
+    double leftOdoDropPos               = 0.3;
+    double rightOdoRetractPos            = 0.0;
+    double rightOdoDropPos               = 0.3;
 
     /* encoder tick variables */
     int sliderBasePos               = 0;
-    int sliderStackedConePos        = 45;
-    int sliderLowPos                = 500;
-    int sliderMedPos                = 800;
-    int sliderHighPos               = 1150;
-    int sliderMaxPos                = 1350;
+    int sliderStackedConePos        = 40;
+    int sliderLowPos                = 425;
+    int sliderMedPos                = 815;
+    int sliderHighPos               = 1115;
+    int sliderMaxPos                = 1100;
+    int armClearPos                 = 300;
     int sliderMinPos                = 0;
     int coneClearDelta              = 180;
-    int armClearPos                 = 120;
-    int dropConeDelta               = 145;
+    int dropConeDelta               = 75;
+    int slideLowerDelta             = 65;
 
     /* timer variables */
     double slideDownDelay           = 0.15;

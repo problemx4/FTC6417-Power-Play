@@ -25,7 +25,7 @@ import org.firstinspires.ftc.teamcode.BluCru6417.PIDcontroller6417;
             left stick              - manual move turret
             right stick             - manual move slider
             left bumper             - toggle grabber
-            left trigger            - turn off limiter
+            left trigger            - turn off limiter / turn off drop assist
             right bumper            - reset slider encoder
             right trigger           - drop cone
             a (x)                   - ground slider position
@@ -61,7 +61,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         manual,
     }
 
-    public static double kP = 1.0;
+    public static double kP = 1.2;
     public static double kI = 0.0;
     public static double kD = 0.3;
 
@@ -97,7 +97,9 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         //SET TURRET TO FORWARD
         robot.autoTurret(turretForwardPos);
         //Retract wrist
-        robot.moveWrist(retractWristPos);
+        robot.moveWrist(retractWristPos + 0.05);
+        //Twist wrist
+        robot.twist(ControlConstants.twisterMidPos);
         //retract odo
         robot.retractOdo();
         //start with angle being 180 degrees
@@ -107,12 +109,20 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         //wait for start and reset timer
         waitForStart();
 
+        //SET TURRET TO FORWARD
+        robot.autoTurret(turretForwardPos);
+        //Retract wrist
+        robot.moveWrist(retractWristPos);
+
         //variables for controlling
         double verticalControl, horizontalControl, rotateControl, currentDrivePower;
         double sliderControl;
 
         int     slidePos = 0;
         int     dropCone = 0;
+        int     slideLower = 0;
+
+        double wristPos = lowerWristPos;
 
         boolean maintainHeading = true;
         boolean limiter = true;
@@ -123,6 +133,8 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
         boolean lastDU2 = false;
         boolean lastF1 = false;
         boolean lastRT2 = false;
+        boolean lastRB2 = false;
+        boolean lastSlideDelay = false;
 
         ElapsedTime slideTimer = new ElapsedTime();
 
@@ -149,7 +161,7 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 horizontalControl = clipJoyInput(gamepad1.left_stick_x);
                 rotateControl = clipJoyInput(gamepad1.right_stick_x);
 
-                if(gamepad1.left_bumper || slidePos >= sliderHighPos || robot.slider.getCurrentPosition() > sliderHighPos){
+                if(gamepad1.left_bumper || slidePos >= (sliderHighPos - slideLowerDelta) || robot.slider.getCurrentPosition() > sliderHighPos){
                     currentDrivePower = maxSlowerDrivePower;
                 }
                 else if(gamepad1.left_trigger > triggerSens){
@@ -182,38 +194,50 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                 sliderControl = -1 * clipJoyInput(gamepad2.right_stick_y);
                 limiter = !(gamepad2.left_trigger > triggerSens);
 
+                //if the limiter is on, enable drop assist, which is twisting grabber and lowering slides a bit
+                if(limiter) {
+                    slideLower = slideLowerDelta;
+                }
+                else{
+                    slideLower = 0;
+                }
+
                 if(gamepad2.a){
                     slideState = SLIDESTATE.targetBase;
                     slidePos = sliderBasePos;
+                    wristPos = lowerWristPos;
                     robot.setAutoSlidePower(baseSlidePower);
                 }
                 if(gamepad2.b){
                     slideState = SLIDESTATE.autoSlide;
                     slidePos = sliderLowPos;
+                    wristPos = raiseWristPos;
                     robot.setAutoSlidePower(lowSlidePower);
                 }
                 if(gamepad2.x){
                     slideState = SLIDESTATE.autoSlide;
-                    slidePos = sliderMedPos;
+                    slidePos = sliderMedPos  - slideLower;
+                    wristPos = raiseWristPos;
                     robot.setAutoSlidePower(medSlidePower);
                 }
                 if(gamepad2.y){
                     slideState = SLIDESTATE.autoSlide;
-                    slidePos = sliderHighPos;
+                    slidePos = sliderHighPos  - slideLower;
+                    wristPos = raiseWristPos;
                     robot.setAutoSlidePower(highSlidePower);
                 }
                 if(Math.abs(sliderControl) >= sens){
                     slideState = SLIDESTATE.manualSlide;
-                    //change target position so that autoslide method recognizes a change from manual to auto
-                    robot.slider.setTargetPosition(-1);
+                    robot.setAutoSlidePower(1.0);
                 }
 
                 //when auto moving slider move turret and wrist accordingly
                 if(slideState != lastSlideState){
-                    if(slideState != SLIDESTATE.manualSlide){
+                    if(slideState != SLIDESTATE.manualSlide && (lastSlideState != SLIDESTATE.manualSlide || lastSlideState == SLIDESTATE.targetBase)){
                         retract = true;
                     }
                     if(slideState == SLIDESTATE.targetBase){
+                        retract = true;
                         turretstate = TURRETSTATE.forward;
                         slideTimer.reset();
                     }
@@ -228,29 +252,42 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                     }
                     dropCone = dropConeDelta;
                     robot.setAutoSlidePower(dropConePower);
+                    wristPos = lowerWristPos;
                 }
                 else{
+                    if(lastRT2){
+                        wristPos = raiseWristPos;
+                    }
                     dropCone = 0;
                 }
                 lastRT2 = gamepad2.right_trigger > triggerSens;
 
                 switch(slideState){
                     case targetBase:
-                        if(slideTimer.seconds() > slideDownDelay){
-                            robot.autoSlide(slidePos);
+                        if(slideTimer.seconds() > slideDownDelay && slideTimer.seconds() < slideStallDelay){
+                            robot.autoSlide(sliderBasePos);
                         }
                         if(slideTimer.seconds() > slideStallDelay){
-                            slideState = SLIDESTATE.manualSlide;
-                            robot.slider.setTargetPosition(-1);
+                            if(!lastSlideDelay){
+                                robot.stopSlides();
+                                robot.resetSliders();
+                            }
                         }
+                        lastSlideDelay = slideTimer.seconds() > slideStallDelay;
                         break;
                     case autoSlide:
                         robot.autoSlide(Range.clip(slidePos - dropCone, sliderMinPos, sliderMaxPos));
                         break;
                     case manualSlide:
-                        //control slider manually
-                        robot.manualSlide(maxManualSliderPower * sliderControl, limiter);
-                        slidePos = robot.slider.getCurrentPosition();
+                        if(limiter){
+                            //TWIDDLE
+                            robot.autoSlide((int)(slidePos + (sliderControl * 2 * dropConeDelta)));
+                        }
+                        else{
+                            //control slider manually
+                            robot.manualSlide(maxManualSliderPower * sliderControl, limiter);
+                            slidePos = robot.slider.getCurrentPosition();
+                        }
                         break;
                 }
             }
@@ -329,9 +366,21 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                         if (retract) {
                             robot.moveWrist(retractWristPos);
                         } else {
-                            robot.moveWrist(lowerWristPos);
+                            robot.moveWrist(wristPos);
                         }
                         break;
+                }
+            }
+
+
+            //twister control
+            {
+                //if the limiter is on and the slides are not dropped
+                if(limiter && (dropCone == 0) && (robot.slider.getCurrentPosition() > (armClearPos + 250)) && (retract == false)){
+                    robot.autoTwist(robot.turret.getPosition());
+                }
+                else{
+                    robot.twist(twisterMidPos);
                 }
             }
 
@@ -360,9 +409,10 @@ public class HolonomicTeleOp6417 extends LinearOpMode implements ControlConstant
                     robot.globalAngle = robot.globalAngle + Math.toRadians(180);
                 }
                 //reset slider
-                if(gamepad2.right_bumper){
+                if(gamepad2.right_bumper && !lastRB2){
                     robot.resetSliders();
                 }
+                lastRB2 = gamepad2.right_bumper;
             }
 
 

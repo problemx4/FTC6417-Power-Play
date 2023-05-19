@@ -1,12 +1,13 @@
 package org.firstinspires.ftc.teamcode.BluCru6417;
 
-import com.acmerobotics.roadrunner.control.PIDFController;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 
@@ -32,6 +33,8 @@ import org.openftc.easyopencv.OpenCvWebcam;
  * Motor channel:   right slider motor:             "RightSlider" *
  * Servo channel:   turret servo:                   "Turret" *
  * Servo channel:   grabber Servo:                  "Grabber" *
+ * Servo channel:   wrist Servo:                    "Wrist" *
+ * Servo channel:   twister Servo:                  "Twister" *
  */
 
 public class Hardware6417 extends SampleMecanumDrive implements ControlConstants{
@@ -43,20 +46,33 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     public Servo turret         = null;
     public Servo grabber        = null;
     public Servo wrist          = null;
+    public Servo twister        = null;
 
-    public Servo parallelRetract = null;
+    public Servo leftRetract = null;
+    public Servo rightRetract = null;
+
+    ModernRoboticsI2cRangeSensor leftRangeSensor = null;
+    ModernRoboticsI2cRangeSensor rightRangeSensor = null;
+
+    //slider PID
+    public PIDslider6417 slidePID;
+    PIDFCoefficients slideCoefficients;
+    public int slideTargetTicks;
 
     //angle variables
     double lastAngle;
     public double globalAngle;
 
+    //input velocity variable
+    Vector2d controllerVelocity;
+
     //power variables
     public double autoSlidePower;
 
     //camera variables
-    double[] subMatCenter = {0.32,0.5}; //NOT coordinates, these values are the % across the screen,.5 being the exact center, x,y from top left
+    double[] subMatCenter = {0.55,0.5}; //NOT coordinates, these values are the % across the screen,.5 being the exact center, x,y from top left
     int subMatWidth = 80;
-    int subMatHeight = 100;
+    int subMatHeight = 120;
 
     static final int CAMERA_WIDTH = 640;
     static final int CAMERA_HEIGHT = 360;
@@ -74,7 +90,10 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         //initialize intake
         initIntake(ahwMap);
         //initialize odo pod retractor
-        parallelRetract = ahwMap.get(Servo.class, "ParallelRetractor");
+        leftRetract = ahwMap.get(Servo.class, "LeftRetract");
+        rightRetract = ahwMap.get(Servo.class, "RightRetract");
+        //initialize controllerVelocity
+        controllerVelocity = new Vector2d(0,0);
         // Save reference to Hardware map
         hwMap       = ahwMap;
     }
@@ -88,6 +107,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         turret      = ahwMap.get(Servo.class, "Turret");
         grabber     = ahwMap.get(Servo.class, "Grabber");
         wrist       = ahwMap.get(Servo.class, "Wrist");
+        twister     = ahwMap.get(Servo.class, "Twister");
 
         //set direction of motors accordingly
         slider.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -98,8 +118,17 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         auxSlider.setPower(0);
 
         //set brake behavior
-        slider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        auxSlider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        slider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        auxSlider.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        //set slide mode
+        slider.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        auxSlider.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        //init slide PID
+        slideCoefficients = slider.getPIDFCoefficients(DcMotor.RunMode.RUN_TO_POSITION);
+        slidePID = new PIDslider6417(1.1,0.0,0.4,0.25);
+        slidePID.setTolerances(0.025,0.05);
 
         //reset sliders
         resetSliders();
@@ -130,6 +159,10 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
                 tele.update();
             }
         }); //done initializing camera
+
+        //initialize range sensors
+        leftRangeSensor = ahwMap.get(ModernRoboticsI2cRangeSensor.class, "LeftRangeSensor");
+        rightRangeSensor = ahwMap.get(ModernRoboticsI2cRangeSensor.class, "RightRangeSensor");
     }
 
     /**
@@ -140,15 +173,18 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
      * getCumulativeAngle() - get cumulative angle of robot
      * resetAngle() - resets angle
      *
-     * rotationPID(double angle) - controls rotation in PID fashion to turn to a specific angle useing IMU
-     * translationPID(double position) - gets current position relative to poles using senors than PID's to the position to be in the middle
-     *
      * manualSlide(power) - moves sliders
      * autoSlide(position) - runs slider to position
      * resetSliders() - reset slider encoders
      *
      * autoTurret(position) - moves turret to position
      * manualTurret(delta) - manually move turret
+     *
+     * moveWrist(position) - moves wrist to position
+     * manualMoveWrist(delta) - manually move wrist
+     *
+     * twist(position) - moves twister
+     * manualTwist(delta) - moves twister manually
      *
      * grab(pos) - sets grabber servo
      * openGrabber() - opens grabber
@@ -169,10 +205,21 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         tele.addData("Slider pos", slider.getCurrentPosition());
         tele.addData("auxSlider pos", auxSlider.getCurrentPosition());
 
+        tele.addData("Slider Velocity", slider.getVelocity());
+        tele.addData("auxSlider Velocity", auxSlider.getVelocity());
+
+
         tele.addData("Turret position", turret.getPosition());
         tele.addData("Wrist position", wrist.getPosition());
+        tele.addData("Twist position", twister.getPosition());
 
         tele.addData("Cumulative Angle", Math.toDegrees(getCumulativeAngle()));
+        tele.addData("Controller Velocity x", controllerVelocity.getX());
+        tele.addData("Controller Velocity y", controllerVelocity.getY());
+
+        tele.addData("P coeff", slideCoefficients.p);
+        tele.addData("I coeff", slideCoefficients.i);
+        tele.addData("D coeff", slideCoefficients.d);
 
         tele.update();
     }
@@ -187,6 +234,9 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         if(maintainHeading){
             input = input.rotated(-heading);
         }
+
+        //update controller velocity
+        controllerVelocity = input;
 
         setWeightedDrivePower(new Pose2d(input.getX() * power,input.getY() * power,-rotation * power));
     }
@@ -220,20 +270,7 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     }
 
 
-    public void rotationPID(double angle){
-
-    }
-
-    public void translationPID(double angle){
-
-    }
-
-
     public void manualSlide(double power, boolean limiter){
-        if(slider.getMode() != DcMotor.RunMode.RUN_USING_ENCODER){
-            slider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            auxSlider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        }
 
         //check if slider is going beyond limits
         if(limiter){
@@ -254,34 +291,17 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
     }
 
     public void autoSlide(int position){
-        if(slider.getTargetPosition() != position){
-            slider.setTargetPosition(position);
-            auxSlider.setTargetPosition(position);
-
-            if(slider.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
-                slider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                auxSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            }
-
-            slider.setPower(autoSlidePower);
-            auxSlider.setPower(autoSlidePower);
-        }
+        slideTargetTicks = Range.clip(position,sliderMinPos,sliderMaxPos);
+        slidePID.setTarget(slideTargetTicks);
+        double power = slidePID.calculate(slider.getCurrentPosition());
+        slider.setPower(power);
+        auxSlider.setPower(power);
     }
 
-    public void clearSliders(int clearDelta){
-        int position = (slider.getCurrentPosition()) + clearDelta;
-
-        slider.setTargetPosition(position);
-        auxSlider.setTargetPosition(position);
-
-        if(slider.getMode() != DcMotor.RunMode.RUN_TO_POSITION){
-            slider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            auxSlider.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        }
-
-        slider.setPower(clearSlidePower);
-        auxSlider.setPower(clearSlidePower);
+    public void updateSlide(){
+        autoSlide(slideTargetTicks);
     }
+
 
     public void resetSliders(){
         //reset motor encoders
@@ -289,21 +309,17 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         auxSlider.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         //use motor encoders
-        slider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        auxSlider.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        slider.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        auxSlider.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    }
 
-        //set power to zero
+    public void stopSlides(){
         slider.setPower(0);
         auxSlider.setPower(0);
-
-        //set motors to run to zero to avoid problems
-        slider.setTargetPosition(0);
-        auxSlider.setTargetPosition(0);
-        //lololol
     }
 
     public void setAutoSlidePower(double power){
-        autoSlidePower = power;
+        slidePID.setPower(power);
     }
 
 
@@ -315,6 +331,12 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         return (quarterDistance * ratio) + turretForwardPos;
     }
 
+    public double turretPowerToAngle(double power){
+        double quarterDistance = turretLeftPos - turretForwardPos;
+        double ratio = (power - turretForwardPos) / quarterDistance;
+        return ((Math.PI / 2.0) * ratio);
+    }
+
     public void autoTurret(double pos){
         if(pos != turret.getPosition()){
             turret.setPosition(pos);
@@ -323,7 +345,9 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
     public void manualTurret(double delta){
         double newPos = Range.clip(turret.getPosition() + (delta * manualServoDelta), turretMinPos, turretMaxPos);
-        turret.setPosition(newPos);
+        if(newPos != turret.getPosition()){
+            turret.setPosition(newPos);
+        }
     }
 
 
@@ -337,7 +361,40 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
 
     public void manualMoveWrist(double delta){
         double newPos = Range.clip(wrist.getPosition() + (delta * manualServoDelta), turretMinPos, turretMaxPos);
-        wrist.setPosition(newPos);
+        if(newPos != wrist.getPosition()){
+            wrist.setPosition(newPos);
+        }
+    }
+
+
+
+    //twister control
+    public void twist(double pos){
+        if(pos != twister.getPosition()){
+            twister.setPosition(pos);
+        }
+    }
+
+    public void manualTwist(double delta){
+        double newPos = Range.clip(twister.getPosition() + (delta * manualServoDelta), twisterMinPos, twisterMaxPos);
+        twister.setPosition(newPos);
+    }
+
+    public void autoTwist(double turretPower){
+        double angle = turretPowerToAngle(turretPower);
+        Vector2d velocity = controllerVelocity.rotated(-angle);
+
+        if(velocity.getY() > autoTwistSens){
+            //twist one way
+            twist(twisterMinPos);
+        }
+        else if(velocity.getY() < -autoTwistSens){
+            //twist the other way
+            twist(twisterMaxPos);
+        }
+        else{
+            twist(twisterMidPos);
+        }
     }
 
 
@@ -354,12 +411,16 @@ public class Hardware6417 extends SampleMecanumDrive implements ControlConstants
         grab(grabberClosePos);
     }
 
+
+
     public void dropOdo(){
-        parallelRetract.setPosition(odoDropPos);
+        leftRetract.setPosition(leftOdoDropPos);
+        rightRetract.setPosition(rightOdoDropPos);
     }
 
     public void retractOdo(){
-        parallelRetract.setPosition(odoRetractPos);
+        leftRetract.setPosition(leftOdoRetractPos);
+        rightRetract.setPosition(rightOdoRetractPos);
     }
 
     public void stop(){

@@ -55,10 +55,10 @@ import static org.firstinspires.ftc.teamcode.drive.DriveConstants.kV;
  */
 @Config
 public class SampleMecanumDrive extends MecanumDrive {
-    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(5, 0, 0);
-    public static PIDCoefficients HEADING_PID = new PIDCoefficients(9, 0, 0);
+    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(7.75, 0, 1.5);
+    public static PIDCoefficients HEADING_PID = new PIDCoefficients(9, 0, 1.0);
 
-    public static double LATERAL_MULTIPLIER = (60.0 / 40.0);
+    public static double LATERAL_MULTIPLIER = (60.0 / 40.0) * (60.0 / 55.84);
 
     public static double VX_WEIGHT = 1;
     public static double VY_WEIGHT = 1;
@@ -81,7 +81,7 @@ public class SampleMecanumDrive extends MecanumDrive {
         super(kV, kA, kStatic, TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER);
 
         follower = new HolonomicPIDVAFollower(TRANSLATIONAL_PID, TRANSLATIONAL_PID, HEADING_PID,
-                new Pose2d(0.1, 0.1, Math.toRadians(3.0)), 0.5);
+                new Pose2d(0.1, 0.1, Math.toRadians(0.5)), 0.3);
 
         LynxModuleUtil.ensureMinimumFirmwareVersion(hardwareMap);
 
@@ -150,6 +150,7 @@ public class SampleMecanumDrive extends MecanumDrive {
 
         // TODO: if desired, use setLocalizer() to change the localization method
         // for instance, setLocalizer(new ThreeTrackingWheelLocalizer(...));
+        //setLocalizer(new StandardTrackingWheelLocalizer(hardwareMap));
 
         setLocalizer(new TwoWheelTrackingLocalizer(hardwareMap, this));
 

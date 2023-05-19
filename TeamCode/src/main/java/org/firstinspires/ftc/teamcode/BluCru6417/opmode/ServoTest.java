@@ -2,22 +2,19 @@ package org.firstinspires.ftc.teamcode.BluCru6417.opmode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.BluCru6417.ControlConstants;
-
-import java.util.List;
 
 @TeleOp (name = "TestServo", group = "TeleOp")
 public class ServoTest extends LinearOpMode implements ControlConstants {
     private Servo ARM = null;
     private Servo WRIST = null;
     private Servo GRABBER = null;
-    private Servo PARALLEL = null;
+    private Servo LEFTRETRACT = null;
+    private Servo RIGHTRETRACT = null;
+    private Servo TWISTER = null;
 
     int ServoState = 0;
     boolean lastGX1 = false;
@@ -35,8 +32,12 @@ public class ServoTest extends LinearOpMode implements ControlConstants {
         WRIST.setPosition(retractWristPos);
         GRABBER = hardwareMap.get(Servo.class,"Grabber");
         GRABBER.setPosition(grabberClosePos);
-        PARALLEL = hardwareMap.get(Servo.class,"ParallelRetractor");
-        PARALLEL.setPosition(odoRetractPos);
+        LEFTRETRACT = hardwareMap.get(Servo.class,"LeftRetract");
+        LEFTRETRACT.setPosition(leftOdoRetractPos);
+        RIGHTRETRACT = hardwareMap.get(Servo.class,"RightRetract");
+        RIGHTRETRACT.setPosition(rightOdoRetractPos);
+        TWISTER = hardwareMap.get(Servo.class,"Twister");
+        TWISTER.setPosition(twisterMidPos);
 
         telemetry.addData("Ready to start.", "");
         telemetry.update();
@@ -46,10 +47,11 @@ public class ServoTest extends LinearOpMode implements ControlConstants {
         runtime.reset();
 
         while(opModeIsActive()){
-            double servoControl = -gamepad1.left_stick_y * .001;
+            double servoControl = -gamepad1.left_stick_y * .05 * runtime.seconds();
+            runtime.reset();
 
             if(gamepad1.x && !lastGX1){
-                ServoState = (ServoState + 1) % 4;
+                ServoState = (ServoState + 1) % 6;
             }
             lastGX1 = gamepad1.x;
 
@@ -71,9 +73,19 @@ public class ServoTest extends LinearOpMode implements ControlConstants {
                     telemetry.addData("Servo Pos", GRABBER.getPosition());
                     break;
                 case 3:
-                    PARALLEL.setPosition(PARALLEL.getPosition() + (servoControl));
-                    telemetry.addData("Servo:", "PARALLEL");
-                    telemetry.addData("Servo Pos", PARALLEL.getPosition());
+                    LEFTRETRACT.setPosition(LEFTRETRACT.getPosition() + (servoControl));
+                    telemetry.addData("Servo:", "LEFT RETRACT");
+                    telemetry.addData("Servo Pos", LEFTRETRACT.getPosition());
+                    break;
+                case 4:
+                    RIGHTRETRACT.setPosition(RIGHTRETRACT.getPosition() + (servoControl));
+                    telemetry.addData("Servo:", "RIGHT RETRACT");
+                    telemetry.addData("Servo Pos", RIGHTRETRACT.getPosition());
+                    break;
+                case 5:
+                    TWISTER.setPosition(TWISTER.getPosition() + (servoControl));
+                    telemetry.addData("Servo:", "TWISTER");
+                    telemetry.addData("Servo Pos", TWISTER.getPosition());
                     break;
             }
 

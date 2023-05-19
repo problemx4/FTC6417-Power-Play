@@ -38,8 +38,10 @@ public class PIDcontroller6417 {
 
     public void setTarget(double tar){
         target = tar;
-        elapsedTime.reset();
-        resetIntegral();
+    }
+
+    public double getTarget(){
+        return target;
     }
 
     public void setTolerances(double errorT, double derivativeT){
@@ -87,6 +89,7 @@ public class PIDcontroller6417 {
         resetTimer();
 
         if(!isBusy()){
+            resetIntegral();
             return 0.0;
         }
         return (error * kP) + (integralSum * kI) + (derivative * kD);
